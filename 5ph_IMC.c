@@ -1,8 +1,13 @@
 //##########################################################################
 //
-// FILE:    Example_2833xCpuTimer.c
+// *** This file is linked to Merlin's github account ***
+// *** Please do not copy and paste ***
 //
-// TITLE:   DSP2833x Device Getting Started Program.
+// FILE:    5ph_IMC
+//
+// TITLE:   Modulation scheme for 5 phase indirect matrix converter
+// 
+// SOURCE:	Example_2833xCpuTimer.c
 //
 // ASSUMPTIONS:
 //
@@ -158,7 +163,6 @@ void main(void)
    for(;;);
 
 }
-
 
 interrupt void cpu_timer0_isr(void)
 {
