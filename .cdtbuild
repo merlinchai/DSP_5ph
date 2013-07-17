@@ -15,6 +15,7 @@
 <listOptionValue builtIn="false" value="IS_ASSEMBLY_ONLY=false"/>
 <listOptionValue builtIn="false" value="CCS_MBS_VERSION=4.1.2"/>
 <listOptionValue builtIn="false" value="PROJECT_KIND=com.ti.ccstudio.managedbuild.core.ProjectKind_Executable"/>
+<listOptionValue builtIn="false" value="LINK_ORDER=DSP2833x_common/lib/IQmath.lib;DSP2833x_common/lib/IQmath_fpu32.lib;DSP2833x_common/lib/rts2800_fpu32_eh.lib;DSP2833x_common/lib/rts2800_fpu32.lib;"/>
 </option>
 <tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1369719689" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug">
 <option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING.1144623561" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.DIAG_WARNING" valueType="stringList">
@@ -29,6 +30,7 @@
 <listOptionValue builtIn="false" value="&quot;${CG_TOOL_ROOT}/include&quot;"/>
 <listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Texas Instruments\xdais_6_25_01_08\packages\ti\xdais&quot;"/>
 </option>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.OPT_LEVEL.865997851" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.OPT_LEVEL" value="com.ti.ccstudio.buildDefinitions.C2000_5.2.compilerID.OPT_LEVEL._none" valueType="enumerated"/>
 </tool>
 <tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.1986554891" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug">
 <option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE.1634865385" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.OUTPUT_FILE" value="&quot;5ph_IMC.out&quot;" valueType="string"/>
@@ -60,6 +62,9 @@
 </resourceConfiguration>
 <resourceConfiguration exclude="true" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.493041937./5ph_IMC/DSP2833x_common/source/DSP2833x_SWPrioritizedPieVect.c" name="DSP2833x_SWPrioritizedPieVect.c" rcbsApplicability="disable" resourcePath="/5ph_IMC/DSP2833x_common/source/DSP2833x_SWPrioritizedPieVect.c" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1369719689./5ph_IMC/DSP2833x_common/source/DSP2833x_SWPrioritizedPieVect.c">
 <tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1369719689./5ph_IMC/DSP2833x_common/source/DSP2833x_SWPrioritizedPieVect.c" name="C2000 Compiler" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.compilerDebug.1369719689"/>
+</resourceConfiguration>
+<resourceConfiguration exclude="false" id="com.ti.ccstudio.buildDefinitions.C2000.Debug.493041937./5ph_IMC/DSP2833x_common/cmd/28335_RAM_lnk.cmd" name="28335_RAM_lnk.cmd" rcbsApplicability="disable" resourcePath="/5ph_IMC/DSP2833x_common/cmd/28335_RAM_lnk.cmd" toolsToInvoke="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.1986554891./5ph_IMC/DSP2833x_common/cmd/28335_RAM_lnk.cmd">
+<tool id="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.1986554891./5ph_IMC/DSP2833x_common/cmd/28335_RAM_lnk.cmd" name="C2000 Linker" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.exe.linkerDebug.1986554891"/>
 </resourceConfiguration>
 </configuration>
 <configuration artifactExtension="out" artifactName="5ph_IMC" description="" id="com.ti.ccstudio.buildDefinitions.C2000.Release.1622656799" name="Release" parent="com.ti.ccstudio.buildDefinitions.C2000.Release">

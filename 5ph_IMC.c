@@ -73,6 +73,7 @@
 //       Input qual for some I/O's and interrupts may have a sampling window
 
 #include "DSP28x_Project.h"     // Device Headerfile and Examples Include File
+#include "iqmathlib.h"		// iqmath library is included to compate with dq-transformation为了兼容dq变换子程序而加入的iqmath库
 
 // Prototype statements for functions found within this file.
 interrupt void cpu_timer0_isr(void);
@@ -86,7 +87,7 @@ void main(void)
 // PLL, WatchDog, enable Peripheral Clocks
 // This example function is found in the DSP2833x_SysCtrl.c file.
    InitSysCtrl();
-
+     
 // Step 2. Initalize GPIO:
 // This example function is found in the DSP2833x_Gpio.c file and
 // illustrates how to set the GPIO to it's default state.
@@ -96,7 +97,7 @@ void main(void)
 // Step 3. Clear all interrupts and initialize PIE vector table:
 // Disable CPU interrupts
    DINT;
-
+   
 // Initialize the PIE control registers to their default state.
 // The default state is all PIE interrupts disabled and flags
 // are cleared.

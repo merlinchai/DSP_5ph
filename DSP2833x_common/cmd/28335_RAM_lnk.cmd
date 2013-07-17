@@ -86,9 +86,7 @@ PAGE 0 :
    BEGIN      : origin = 0x000000, length = 0x000002     /* Boot to M0 will go here                      */
    RAMM0      : origin = 0x000050, length = 0x0003B0
    RAML0      : origin = 0x008000, length = 0x001000
-   RAML1      : origin = 0x009000, length = 0x001000
-   RAML2      : origin = 0x00A000, length = 0x001000
-   RAML3      : origin = 0x00B000, length = 0x001000
+   RAML1      : origin = 0x009000, length = 0x003000	/* Deleted RAML2 and RAML3 which has length 0x001000 each */
    ZONE7A     : origin = 0x200000, length = 0x00FC00    /* XINTF zone 7 - program space */
    CSM_RSVD   : origin = 0x33FF80, length = 0x000076     /* Part of FLASHA.  Program with all 0x0000 when CSM is in use. */
    CSM_PWL    : origin = 0x33FFF8, length = 0x000008     /* Part of FLASHA.  CSM password locations in FLASHA            */
@@ -107,9 +105,7 @@ PAGE 1 :
 
    BOOT_RSVD  : origin = 0x000002, length = 0x00004E     /* Part of M0, BOOT rom will use this for stack */
    RAMM1      : origin = 0x000400, length = 0x000400     /* on-chip RAM block M1 */
-   RAML4      : origin = 0x00C000, length = 0x001000
-   RAML5      : origin = 0x00D000, length = 0x001000
-   RAML6      : origin = 0x00E000, length = 0x001000
+   RAML4      : origin = 0x00C000, length = 0x003000	 /* Deleted RAML5 and RAML6 which has length 0x001000 each */
    RAML7      : origin = 0x00F000, length = 0x001000
    ZONE7B     : origin = 0x20FC00, length = 0x000400     /* XINTF zone 7 - data space */
 }
@@ -129,7 +125,7 @@ SECTIONS
 
    .stack           : > RAMM1,     PAGE = 1
    .ebss            : > RAML4,     PAGE = 1
-   .econst          : > RAML5,     PAGE = 1
+   .econst          : > RAML4,     PAGE = 1
    .esysmem         : > RAMM1,     PAGE = 1
 
    IQmath           : > RAML1,     PAGE = 0
@@ -154,8 +150,8 @@ SECTIONS
    FPUmathTables    : > FPUTABLES, PAGE = 0, TYPE = NOLOAD
 
    DMARAML4         : > RAML4,     PAGE = 1
-   DMARAML5         : > RAML5,     PAGE = 1
-   DMARAML6         : > RAML6,     PAGE = 1
+   DMARAML5         : > RAML4,     PAGE = 1
+   DMARAML6         : > RAML4,     PAGE = 1
    DMARAML7         : > RAML7,     PAGE = 1
 
    ZONE7DATA        : > ZONE7B,    PAGE = 1
