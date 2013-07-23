@@ -73,13 +73,19 @@
 //       Input qual for some I/O's and interrupts may have a sampling window
 
 #include "DSP28x_Project.h"     // Device Headerfile and Examples Include File
-#include "iqmathlib.h"		// iqmath library is included to compate with dq-transformation为了兼容dq变换子程序而加入的iqmath库
+#include "iqmathlib.h"			// iqmath library is included to compate with dq-transformation
+#include "math.h"				// To perform mathematical functions
+#include <stdlib.h>				// Contains malloc()
+
+#define pi 3.141592654
 
 // Prototype statements for functions found within this file.
 interrupt void cpu_timer0_isr(void);
 interrupt void cpu_timer1_isr(void);
 interrupt void cpu_timer2_isr(void);
 void Gpio_setup(void);
+int *FivePhaseClarke(int *abc);
+
 
 void main(void)
 {
@@ -128,24 +134,25 @@ void main(void)
 //         found in DSP2833x_CpuTimers.c
    InitCpuTimers();   // For this example, only initialize the Cpu Timers
 
-#if (CPU_FRQ_150MHZ)
-// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
-// 150MHz CPU Freq, 1 second Period (in uSeconds)
-
-   ConfigCpuTimer(&CpuTimer0, 150, 1000000);
-   ConfigCpuTimer(&CpuTimer1, 150, 1000000);
-   ConfigCpuTimer(&CpuTimer2, 150, 1000000);
-   
-#endif
-
-#if (CPU_FRQ_100MHZ)
-// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
-// 100MHz CPU Freq, 1 second Period (in uSeconds)
-
-   ConfigCpuTimer(&CpuTimer0, 100, 1000000);
-   ConfigCpuTimer(&CpuTimer1, 100, 1000000);
-   ConfigCpuTimer(&CpuTimer2, 100, 1000000);
-#endif
+	#if (CPU_FRQ_150MHZ)
+	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
+	// 150MHz CPU Freq, 1 second Period (in uSeconds)
+	
+	   ConfigCpuTimer(&CpuTimer0, 150, 1000000);
+	   ConfigCpuTimer(&CpuTimer1, 150, 1000000);
+	   ConfigCpuTimer(&CpuTimer2, 150, 1000000);
+	   
+	#endif
+	
+	#if (CPU_FRQ_100MHZ)
+	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
+	// 100MHz CPU Freq, 1 second Period (in uSeconds)
+	
+	   ConfigCpuTimer(&CpuTimer0, 100, 1000000);
+	   ConfigCpuTimer(&CpuTimer1, 100, 1000000);
+	   ConfigCpuTimer(&CpuTimer2, 100, 1000000);
+	#endif
+	
 // To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
 // of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
 // below settings must also be updated.
@@ -356,3 +363,19 @@ void Gpio_setup(void)
    GpioCtrlRegs.GPBDIR.bit.GPIO34 = 0;  // GPIO34 = input
    EDIS;
 }
+
+int *FivePhaseClarke(int *abc)
+{
+	static int alpha = 2*pi/5;
+	int* dq = (int*) malloc(sizeof(int) * 5);
+	
+	dq[0] = (2/5)*(1*abc[1] + cos(1*alpha)*abc[2] + cos(2*alpha)*abc[3] + cos(3*alpha)*abc[4] + cos(4*alpha)*abc[5]);
+	dq[1] = (2/5)*(0*abc[1] + sin(1*alpha)*abc[2] + sin(2*alpha)*abc[3] + sin(3*alpha)*abc[4] + sin(4*alpha)*abc[5]);
+	dq[2] = (2/5)*(1*abc[1] + cos(2*alpha)*abc[2] + cos(4*alpha)*abc[3] + cos(6*alpha)*abc[4] + cos(8*alpha)*abc[5]);
+	dq[3] = (2/5)*(0*abc[1] + sin(2*alpha)*abc[2] + sin(4*alpha)*abc[3] + sin(6*alpha)*abc[4] + sin(8*alpha)*abc[5]);
+	dq[4] = (2/5)*(0.5*abc[1] + 0.5*abc[2] + 0.5*abc[3] + 0.5*abc[4] + 0.5*abc[5]);
+	
+	return dq;
+}
+
+

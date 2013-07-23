@@ -48,6 +48,7 @@
 <listOptionValue builtIn="false" value="&quot;$(GEN_CMDS_QUOTED)&quot;"/>
 </option>
 <option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE.797479160" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.STACK_SIZE" value="0x400" valueType="string"/>
+<option id="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.HEAP_SIZE.902315562" superClass="com.ti.ccstudio.buildDefinitions.C2000_5.2.linkerID.HEAP_SIZE" value="0x400" valueType="string"/>
 </tool>
 <macros expandEnvironmentMacros="true"/>
 </toolChain>
