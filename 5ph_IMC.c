@@ -7,50 +7,6 @@
 //
 // TITLE:   Modulation scheme for 5 phase indirect matrix converter
 // 
-// SOURCE:	Example_2833xCpuTimer.c
-//
-// ASSUMPTIONS:
-//
-//    This program requires the DSP2833x header files.
-//
-//    Other then boot mode configuration, no other hardware configuration
-//    is required.
-//
-//
-//    As supplied, this project is configured for "boot to SARAM"
-//    operation.  The 2833x Boot Mode table is shown below.
-//    For information on configuring the boot mode of an eZdsp,
-//    please refer to the documentation included with the eZdsp,
-//
-//       $Boot_Table:
-//
-//         GPIO87   GPIO86     GPIO85   GPIO84
-//          XA15     XA14       XA13     XA12
-//           PU       PU         PU       PU
-//        ==========================================
-//            1        1          1        1    Jump to Flash
-//            1        1          1        0    SCI-A boot
-//            1        1          0        1    SPI-A boot
-//            1        1          0        0    I2C-A boot
-//            1        0          1        1    eCAN-A boot
-//            1        0          1        0    McBSP-A boot
-//            1        0          0        1    Jump to XINTF x16
-//            1        0          0        0    Jump to XINTF x32
-//            0        1          1        1    Jump to OTP
-//            0        1          1        0    Parallel GPIO I/O boot
-//            0        1          0        1    Parallel XINTF boot
-//            0        1          0        0    Jump to SARAM	    <- "boot to SARAM"
-//            0        0          1        1    Branch to check boot mode
-//            0        0          1        0    Boot to flash, bypass ADC cal
-//            0        0          0        1    Boot to SARAM, bypass ADC cal
-//            0        0          0        0    Boot to SCI-A, bypass ADC cal
-//                                              Boot_Table_End$
-//
-// DESCRIPTION:
-//
-//    This example configures CPU Timer0, 1, and 2 and increments
-//    a counter each time the timers assert an interrupt.
-//
 //       Watch Variables:
 //          CpuTimer0.InterruptCount
 //          CpuTimer1.InterruptCount
@@ -77,14 +33,20 @@
 #include "math.h"				// To perform mathematical functions
 #include <stdlib.h>				// Contains malloc()
 
-#define pi 3.141592654
+
+// Definitions for constants and registries
+#define pi 		3.141592654
+#define alpha	1.256637061
+#define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60
+#define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61
 
 // Prototype statements for functions found within this file.
 interrupt void cpu_timer0_isr(void);
 interrupt void cpu_timer1_isr(void);
 interrupt void cpu_timer2_isr(void);
 void Gpio_setup(void);
-int *FivePhaseClarke(int *abc);
+void configtestled(void);
+float *FivePhaseClarke(float *abc);
 
 
 void main(void)
@@ -98,7 +60,8 @@ void main(void)
 // Step 2. Initalize GPIO:
 // This example function is found in the DSP2833x_Gpio.c file and
 // illustrates how to set the GPIO to it's default state.
-	InitGpio();
+//	InitGpio();
+	InitXintf16Gpio();
 
 
 // Step 3. Clear all interrupts and initialize PIE vector table:
@@ -135,31 +98,19 @@ void main(void)
 //         found in DSP2833x_CpuTimers.c
 	InitCpuTimers();   // For this example, only initialize the Cpu Timers
 
-	#if (CPU_FRQ_150MHZ)
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
 	// 150MHz CPU Freq, 1 second Period (in uSeconds)
-		ConfigCpuTimer(&CpuTimer0, 150, 1000000);
-		ConfigCpuTimer(&CpuTimer1, 150, 1000000);
-		ConfigCpuTimer(&CpuTimer2, 150, 1000000);
+	ConfigCpuTimer(&CpuTimer0, 150, 200000);	// Changed to 0.2s for LED blinking
+	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
+	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
-	#endif
+	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
+	// of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
+	// below settings must also be updated.
 	
-	#if (CPU_FRQ_100MHZ)
-	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
-	// 100MHz CPU Freq, 1 second Period (in uSeconds)
-	
-		ConfigCpuTimer(&CpuTimer0, 100, 1000000);
-		ConfigCpuTimer(&CpuTimer1, 100, 1000000);
-		ConfigCpuTimer(&CpuTimer2, 100, 1000000);
-	#endif
-	
-// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
-// of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
-// below settings must also be updated.
-
-CpuTimer0Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
-CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
-CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+	CpuTimer0Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 
 // Step 5. User specific code, enable interrupts:
 
@@ -179,19 +130,32 @@ CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 	ERTM;   // Enable Global realtime interrupt DBGM
    
 // Setup GPIO
-	Gpio_setup();
+//	Gpio_setup();
+	
+// LED setup
+	configtestled();
+	LED1 = 0;
+	LED2 = 0;
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
 	for(;;);
 
 }
 
+// Interrupt for cpu_timer0 is used to change LED state
 interrupt void cpu_timer0_isr(void)
 {
 	CpuTimer0.InterruptCount++;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
 	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+	
+	// Copied frmo LED code
+	CpuTimer0Regs.TCR.bit.TIF=1;
+    CpuTimer0Regs.TCR.bit.TRB=1;
+
+	LED1=~LED1;
+	LED2=~LED2;
 }
 
 interrupt void cpu_timer1_isr(void)
@@ -365,11 +329,21 @@ void Gpio_setup(void)
    	EDIS;
 }
 
-// Function to perform five phase Clarke's transformation
-int *FivePhaseClarke(int *abc)
+// Set inital LED states
+void configtestled(void)
 {
-	static int alpha = 2*pi/5;
-	int* dq = (int*) malloc(sizeof(int) * 5);
+   EALLOW;
+   GpioCtrlRegs.GPBMUX2.bit.GPIO60 = 0; // GPIO60 = GPIO60
+   GpioCtrlRegs.GPBDIR.bit.GPIO60 = 1; 
+   GpioCtrlRegs.GPBMUX2.bit.GPIO61 = 0; // GPIO61 = GPIO61
+   GpioCtrlRegs.GPBDIR.bit.GPIO61 = 1;
+   EDIS;
+}
+
+// Function to perform five phase Clarke's transformation
+float *FivePhaseClarke(float *abc)
+{
+	float* dq = (float*) malloc(sizeof(float)*5);
 	
 	dq[0] = (2/5)*(1*abc[1] + cos(1*alpha)*abc[2] + cos(2*alpha)*abc[3] + cos(3*alpha)*abc[4] + cos(4*alpha)*abc[5]);
 	dq[1] = (2/5)*(0*abc[1] + sin(1*alpha)*abc[2] + sin(2*alpha)*abc[3] + sin(3*alpha)*abc[4] + sin(4*alpha)*abc[5]);
@@ -379,5 +353,9 @@ int *FivePhaseClarke(int *abc)
 	
 	return dq;
 }
+
+//===========================================================================
+// No more.
+//===========================================================================
 
 
