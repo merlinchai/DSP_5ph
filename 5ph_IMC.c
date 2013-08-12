@@ -105,8 +105,8 @@ void main(void)
 	// ISR functions found within this file.
 	EALLOW;  // This is needed to write to EALLOW protected registers
 	PieVectTable.TINT0 = &cpu_timer0_isr;
-	PieVectTable.XINT13 = &cpu_timer1_isr;
-	PieVectTable.TINT2 = &cpu_timer2_isr;
+//	PieVectTable.XINT13 = &cpu_timer1_isr;
+//	PieVectTable.TINT2 = &cpu_timer2_isr;
 	EDIS;    // This is needed to disable write to EALLOW protected registers
 
 // Step 4. Initialize the Device Peripheral. 
@@ -116,8 +116,8 @@ void main(void)
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
 	// 150MHz CPU Freq, 1 second Period (in uSeconds)
 	ConfigCpuTimer(&CpuTimer0, 150, 200000);	// Changed to 0.2s for LED blinking
-	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
-	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
+//	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
+//	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
 	// of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
@@ -177,21 +177,21 @@ interrupt void cpu_timer0_isr(void)
 }
 
 // Interrupt for cpu_timer1
-interrupt void cpu_timer1_isr(void)
-{
-	CpuTimer1.InterruptCount++;
-   // The CPU acknowledges the interrupt.
-   EDIS;
-}
+//interrupt void cpu_timer1_isr(void)
+//{
+//	CpuTimer1.InterruptCount++;
+//    The CPU acknowledges the interrupt.
+//	EDIS;
+//}
 
 // Interrupt for cpu_timer2
-interrupt void cpu_timer2_isr(void)
-{  
-	EALLOW;
-	CpuTimer2.InterruptCount++;
-   // The CPU acknowledges the interrupt.
-	EDIS;
-}
+//interrupt void cpu_timer2_isr(void)
+//{  
+//	EALLOW;
+//	CpuTimer2.InterruptCount++;
+//   // The CPU acknowledges the interrupt.
+//	EDIS;
+//}
 
 // Interrupt for ADC
 interrupt void adc_isr(void)
