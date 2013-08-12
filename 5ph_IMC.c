@@ -11,22 +11,7 @@
 //          CpuTimer0.InterruptCount
 //          CpuTimer1.InterruptCount
 //          CpuTimer2.InterruptCount
-//
-//    Configures the 2833x GPIO into two different configurations
-//    This code is verbose to illustrate how the GPIO could be setup.
-//    In a real application, lines of code can be combined for improved
-//    code size and efficency.
-//
-//    This example only sets-up the GPIO.. nothing is actually done with
-//    the pins after setup.
-//
-//    In general:
-//
-//       All pullup resistors are enabled.  For ePWMs this may not be desired.
-//       Input qual for communication ports (eCAN, SPI, SCI, I2C) is asynchronous
-//       Input qual for Trip pins (TZ) is asynchronous
-//       Input qual for eCAP and eQEP signals is synch to SYSCLKOUT
-//       Input qual for some I/O's and interrupts may have a sampling window
+
 
 #include "DSP28x_Project.h"     // Device Headerfile and Examples Include File
 #include "iqmathlib.h"			// iqmath library is included to compate with dq-transformation
@@ -40,19 +25,40 @@
 #define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60
 #define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61
 
-#if (CPU_FRQ_150MHZ)     // Default - 150 MHz SYSCLKOUT
-  #define ADC_MODCLK 0x3 // HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)   = 25.0 MHz
+// Determine when the shift to right justify the data takes place
+// Only one of these should be defined as 1.
+// The other two should be defined as 0.
+#define POST_SHIFT   0		// Shift results after the entire sample table is full
+#define INLINE_SHIFT 1		// Shift results as the data is taken from the results regsiter
+#define NO_SHIFT     0  	// Do not shift the results
+
+// ADC parameters
+#if (CPU_FRQ_150MHZ)		// Default - 150 MHz SYSCLKOUT
+  #define ADC_MODCLK 0x3	// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)   = 25.0 MHz
 #endif
 #if (CPU_FRQ_100MHZ)
-  #define ADC_MODCLK 0x2 // HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 100/(2*2)   = 25.0 MHz
+  #define ADC_MODCLK 0x2	// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 100/(2*2)   = 25.0 MHz
 #endif
+#define ADC_CKPS   0x0		// ADC module clock = HSPCLK/1      = 25.5MHz/(1)   = 25.0 MHz
+#define ADC_SHCLK  0x1		// S/H width in ADC module periods                  = 2 ADC cycle
+#define AVG        1000		// Average sample limit
+#define ZOFFSET    0x00		// Average Zero offset
+#define BUF_SIZE   256		// Sample buffer size
 
-// Prototype statements for functions found within this file.
+// Global variable for ADC
+Uint16 SampleTable[BUF_SIZE];
+Uint16 SampleTable1[BUF_SIZE];
+float SampleValue[BUF_SIZE];
+Uint16 AD0[64];
+
+// Prototype statements
+// Interrupts
 interrupt void cpu_timer0_isr(void);
-interrupt void cpu_timer1_isr(void);
-interrupt void cpu_timer2_isr(void);
+//interrupt void cpu_timer1_isr(void);
+//interrupt void cpu_timer2_isr(void);
 interrupt void adc_isr(void);
 
+// Other functions
 void configtestled(void);
 float *FivePhaseClarke(float *abc);
 
@@ -123,8 +129,8 @@ void main(void)
 	// of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
 	// below settings must also be updated.
 	CpuTimer0Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
-	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
-	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+//	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+//	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 	
 	// This function is found in DSP2833x_InitPeripherals.c
 	//InitPeripherals(); 	// Not required for this example
@@ -151,6 +157,7 @@ void main(void)
 	//Gpio_setup();
 	
 	// LED setup
+	// 1 is OFF; 0 is ON
 	configtestled();
 	LED1 = 0;
 	LED2 = 1;
@@ -173,14 +180,13 @@ interrupt void cpu_timer0_isr(void)
     CpuTimer0Regs.TCR.bit.TRB=1;
 
 	LED1=~LED1;
-	LED2=~LED2;
 }
 
 // Interrupt for cpu_timer1
 //interrupt void cpu_timer1_isr(void)
 //{
 //	CpuTimer1.InterruptCount++;
-//    The CPU acknowledges the interrupt.
+//	// The CPU acknowledges the interrupt.
 //	EDIS;
 //}
 
