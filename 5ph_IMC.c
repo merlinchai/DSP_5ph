@@ -22,8 +22,8 @@
 // Definitions for constants and registries
 #define PI 		3.141592654
 #define alpha	1.256637061
-#define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60
-#define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61
+#define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60	// Red LED
+#define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61	// Green LED
 
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
@@ -54,7 +54,7 @@ Uint16 AD0[64];
 // Prototype statements
 // Interrupts
 interrupt void cpu_timer0_isr(void);
-//interrupt void cpu_timer1_isr(void);
+interrupt void cpu_timer1_isr(void);
 //interrupt void cpu_timer2_isr(void);
 interrupt void adc_isr(void);
 
@@ -65,6 +65,10 @@ float *FivePhaseClarke(float *abc);
 
 void main(void)
 {
+	// ADC variables
+	Uint16 i;
+   	Uint16 j,k;
+   	Uint16 array_index;
   	
 // Step 1. Initialize System Control:
 	// PLL, WatchDog, enable Peripheral Clocks
@@ -111,7 +115,7 @@ void main(void)
 	// ISR functions found within this file.
 	EALLOW;  // This is needed to write to EALLOW protected registers
 	PieVectTable.TINT0 = &cpu_timer0_isr;
-//	PieVectTable.XINT13 = &cpu_timer1_isr;
+	PieVectTable.XINT13 = &cpu_timer1_isr;
 //	PieVectTable.TINT2 = &cpu_timer2_isr;
 	EDIS;    // This is needed to disable write to EALLOW protected registers
 
@@ -121,18 +125,47 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
 	// 150MHz CPU Freq, 1 second Period (in uSeconds)
-	ConfigCpuTimer(&CpuTimer0, 150, 200000);	// Changed to 0.2s for LED blinking
-//	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
+	ConfigCpuTimer(&CpuTimer0, 150, 2000);	// Changed to 0.2s for LED blinking
+	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
 	// of the configuration bits are changed in ConfigCpuTimer and InitCpuTimers (in DSP2833x_CpuTimers.h), the
 	// below settings must also be updated.
 	CpuTimer0Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
-//	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
+	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 //	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 	
-	// This function is found in DSP2833x_InitPeripherals.c
+	// Specific ADC setup for this example:
+  	 AdcRegs.ADCTRL1.bit.ACQ_PS = ADC_SHCLK;  	// Sequential mode: Sample rate   = 1/[(2+ACQ_PS)*ADC clock in ns]
+                        						// = 1/(3*40ns) =8.3MHz (for 150 MHz SYSCLKOUT)
+					    						// = 1/(3*80ns) =4.17MHz (for 100 MHz SYSCLKOUT)
+					    						// If Simultaneous mode enabled: Sample rate = 1/[(3+ACQ_PS)*ADC clock in ns]
+	AdcRegs.ADCTRL3.bit.ADCCLKPS = ADC_CKPS;
+ 	AdcRegs.ADCTRL1.bit.SEQ_CASC = 1;        	// 1  Cascaded mode
+ 	AdcRegs.ADCCHSELSEQ1.bit.CONV00 = 0x1;
+ 	AdcRegs.ADCTRL1.bit.CONT_RUN = 1;       	// Setup continuous run
+
+ 	AdcRegs.ADCTRL1.bit.SEQ_OVRD = 1;       	// Enable Sequencer override feature
+  	AdcRegs.ADCCHSELSEQ1.all = 0x0;         	// Initialize all ADC channel selects to A0
+ 	AdcRegs.ADCCHSELSEQ2.all = 0x0;
+ 	AdcRegs.ADCCHSELSEQ3.all = 0x0;
+  	AdcRegs.ADCCHSELSEQ4.all = 0x0;
+  	AdcRegs.ADCMAXCONV.bit.MAX_CONV1 = 0x1;  	// convert and store in 8 results registers
+
+	// Clear SampleTable
+   	for (i=0; i<BUF_SIZE; i++)
+   	{
+    	SampleTable[i] = 0;
+	 	SampleTable1[i] = 0;
+   	}
+
+   	for(i=0;i<64;i++)
+   	AD0[i] = 0;
+	// Start SEQ1
+   	AdcRegs.ADCTRL2.all = 0x2000;
+   
+   	// This function is found in DSP2833x_InitPeripherals.c
 	//InitPeripherals(); 	// Not required for this example
 	InitAdc();			// For this example, init the ADC
 
@@ -163,7 +196,26 @@ void main(void)
 	LED2 = 1;
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
-	for(;;);
+	for(;;)
+	{
+		// Take ADC data and log them in SampleTable array
+		array_index = 0;
+     	for (i=0; i<(BUF_SIZE); i++)
+     	{
+       		while (AdcRegs.ADCST.bit.INT_SEQ1== 0){}
+
+       		AdcRegs.ADCST.bit.INT_SEQ1_CLR = 1;
+
+       		SampleTable[array_index] = ((AdcRegs.ADCRESULT0)>>4);
+			SampleValue[array_index] = SampleTable[array_index]*3.0/4096;
+			array_index++;
+	   		for(j=0; j<100; j++)
+	    	{
+	    		k++;
+	    	}
+	 	}
+	}	
+	
 
 }
 
@@ -175,20 +227,30 @@ interrupt void cpu_timer0_isr(void)
 	// Acknowledge this interrupt to receive more interrupts from group 1
 	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
 	
-	// Copied frmo LED code
+	// Copied from LED code
 	CpuTimer0Regs.TCR.bit.TIF=1;
     CpuTimer0Regs.TCR.bit.TRB=1;
 
 	LED1=~LED1;
+	
+	// Perform ADC
+	
 }
 
 // Interrupt for cpu_timer1
-//interrupt void cpu_timer1_isr(void)
-//{
-//	CpuTimer1.InterruptCount++;
-//	// The CPU acknowledges the interrupt.
-//	EDIS;
-//}
+interrupt void cpu_timer1_isr(void)
+{
+	CpuTimer1.InterruptCount++;
+	// The CPU acknowledges the interrupt.
+	EDIS;
+	
+	// Copied from LED code
+	CpuTimer1Regs.TCR.bit.TIF=1;
+    CpuTimer1Regs.TCR.bit.TRB=1;
+    
+    LED2=~LED2;	
+    
+}
 
 // Interrupt for cpu_timer2
 //interrupt void cpu_timer2_isr(void)
