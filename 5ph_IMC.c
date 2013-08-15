@@ -41,7 +41,7 @@ EDIS;
 #define ADC_SHCLK  0x1		// S/H width in ADC module periods                  = 2 ADC cycle
 #define AVG        1000		// Average sample limit
 #define ZOFFSET    0x00		// Average Zero offset
-#define BUF_SIZE   256		// Sample buffer size
+#define BUF_SIZE   16		// Sample buffer size
 
 // Global variable for ADC
 Uint16 SampleTable[BUF_SIZE];
@@ -133,37 +133,9 @@ void main(void)
 	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 //	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 	
-	// Specific ADC setup for this example:
-  	 AdcRegs.ADCTRL1.bit.ACQ_PS = ADC_SHCLK;  	// Sequential mode: Sample rate   = 1/[(2+ACQ_PS)*ADC clock in ns]
-                        						// = 1/(3*40ns) =8.3MHz (for 150 MHz SYSCLKOUT)
-					    						// = 1/(3*80ns) =4.17MHz (for 100 MHz SYSCLKOUT)
-					    						// If Simultaneous mode enabled: Sample rate = 1/[(3+ACQ_PS)*ADC clock in ns]
-	AdcRegs.ADCTRL3.bit.ADCCLKPS = ADC_CKPS;
- 	AdcRegs.ADCTRL1.bit.SEQ_CASC = 1;        	// 1  Cascaded mode
- 	AdcRegs.ADCCHSELSEQ1.bit.CONV00 = 0x1;
- 	AdcRegs.ADCTRL1.bit.CONT_RUN = 1;       	// Setup continuous run
-
- 	AdcRegs.ADCTRL1.bit.SEQ_OVRD = 1;       	// Enable Sequencer override feature
-  	AdcRegs.ADCCHSELSEQ1.all = 0x0;         	// Initialize all ADC channel selects to A0
- 	AdcRegs.ADCCHSELSEQ2.all = 0x0;
- 	AdcRegs.ADCCHSELSEQ3.all = 0x0;
-  	AdcRegs.ADCCHSELSEQ4.all = 0x0;
-  	AdcRegs.ADCMAXCONV.bit.MAX_CONV1 = 0x1;  	// convert and store in 8 results registers
-
-	// Clear SampleTable
-   	for (i=0; i<BUF_SIZE; i++)
-   	{
-    	SampleTable[i] = 0;
-   	}
-
-   	for(i=0;i<64;i++)
-   	AD0[i] = 0;
-	// Start SEQ1
-   	AdcRegs.ADCTRL2.all = 0x2000;
-   
    	// This function is found in DSP2833x_InitPeripherals.c
 	//InitPeripherals(); 	// Not required for this example
-	InitAdc();			// For this example, init the ADC
+	InitAdc();				// For this example, init the ADC
 
 // Step 5. User specific code, enable interrupts:
 
@@ -190,6 +162,34 @@ void main(void)
 	configtestled();
 	LED1 = 0;
 	LED2 = 1;
+	
+	// Specific ADC setup for this example:
+  	AdcRegs.ADCTRL1.bit.ACQ_PS = ADC_SHCLK;  	// Sequential mode: Sample rate   = 1/[(2+ACQ_PS)*ADC clock in ns]
+                        						// = 1/(3*40ns) =8.3MHz (for 150 MHz SYSCLKOUT)
+					    						// = 1/(3*80ns) =4.17MHz (for 100 MHz SYSCLKOUT)
+					    						// If Simultaneous mode enabled: Sample rate = 1/[(3+ACQ_PS)*ADC clock in ns]
+	AdcRegs.ADCTRL3.bit.ADCCLKPS = ADC_CKPS;
+ 	AdcRegs.ADCTRL1.bit.SEQ_CASC = 1;        	// 1  Cascaded mode
+ 	AdcRegs.ADCCHSELSEQ1.bit.CONV00 = 0x1;
+ 	AdcRegs.ADCTRL1.bit.CONT_RUN = 1;       	// Setup continuous run
+
+ 	AdcRegs.ADCTRL1.bit.SEQ_OVRD = 1;       	// Enable Sequencer override feature
+  	AdcRegs.ADCCHSELSEQ1.all = 0x0;         	// Initialize all ADC channel selects to A0
+ 	AdcRegs.ADCCHSELSEQ2.all = 0x0;
+ 	AdcRegs.ADCCHSELSEQ3.all = 0x0;
+  	AdcRegs.ADCCHSELSEQ4.all = 0x0;
+  	AdcRegs.ADCMAXCONV.bit.MAX_CONV1 = 0x1;  	// convert and store in 8 results registers
+
+	// Clear SampleTable
+   	for (i=0; i<BUF_SIZE; i++)
+   	{
+    	SampleTable[i] = 0;
+   	}
+
+   	for(i=0;i<64;i++)
+   	AD0[i] = 0;
+	// Start SEQ1
+   	AdcRegs.ADCTRL2.all = 0x2000;
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
 	for(;;)
