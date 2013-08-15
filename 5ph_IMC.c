@@ -33,12 +33,10 @@
 #define NO_SHIFT     0  	// Do not shift the results
 
 // ADC parameters
-#if (CPU_FRQ_150MHZ)		// Default - 150 MHz SYSCLKOUT
-  #define ADC_MODCLK 0x3	// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)		= 25.0 MHz
-#endif
-#if (CPU_FRQ_100MHZ)
-  #define ADC_MODCLK 0x2	// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 100/(2*2)		= 25.0 MHz
-#endif
+EALLOW;
+#define ADC_MODCLK 0x3		// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)		= 25.0 MHz
+EDIS;
+
 #define ADC_CKPS   0x0		// ADC module clock = HSPCLK/1      = 25.5MHz/(1)   = 25.0 MHz
 #define ADC_SHCLK  0x1		// S/H width in ADC module periods                  = 2 ADC cycle
 #define AVG        1000		// Average sample limit
@@ -124,7 +122,7 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
 	// 150MHz CPU Freq, 1 second Period (in uSeconds)
-	ConfigCpuTimer(&CpuTimer0, 150, 2000);	// Changed to 0.2s for LED blinking
+	ConfigCpuTimer(&CpuTimer0, 150, 2000);
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
