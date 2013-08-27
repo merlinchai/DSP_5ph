@@ -21,6 +21,8 @@ extern "C" {
 
 /*---- shared global function prototypes -----------------------------------*/
 extern void InitAdc(void);
+extern void SetupAdc(void);
+extern int16 *InquireAdc(void);
 
 extern void DMAInitialize(void);
 // DMA Channel 1

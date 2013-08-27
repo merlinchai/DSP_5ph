@@ -13,15 +13,18 @@
 //          CpuTimer2.InterruptCount
 
 
-#include "DSP28x_Project.h"     // Device Headerfile and Examples Include File
-#include "iqmathlib.h"			// iqmath library is included to compate with dq-transformation
-#include "math.h"				// To perform mathematical functions
-#include <stdlib.h>				// Contains malloc()
+#include "DSP28x_Project.h"     	// Device Headerfile and Examples Include File
+#include "DSP2833x_Device.h"		// DSP2833x Headerfile Include File
+#include "DSP2833x_Examples.h"   	// DSP2833x Examples Include File
+#include "math.h"					// To perform mathematical functions
 
+#include <stdlib.h>					// Contains malloc()
 
-// Definitions for constants and registries
+// Definitions for constants
 #define PI 		3.141592654
 #define alpha	1.256637061
+
+// Definitons for registries
 #define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60	// Red LED
 #define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61	// Green LED
 
@@ -44,16 +47,15 @@ EDIS;
 #define BUF_SIZE   16		// Sample buffer size
 
 // Global variable for ADC
-Uint16 SampleTable[BUF_SIZE];
-float SampleValue[BUF_SIZE];
-Uint16 AD0[64];
+int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
+float SampleValue[16];	// Scaled for actual voltage
+
 
 // Prototype statements
 // Interrupts
 interrupt void cpu_timer0_isr(void);
 interrupt void cpu_timer1_isr(void);
 //interrupt void cpu_timer2_isr(void);
-interrupt void adc_isr(void);
 
 // Other functions
 void configtestled(void);
@@ -62,11 +64,7 @@ float *FivePhaseClarke(float *abc);
 
 void main(void)
 {
-	// ADC variables
-	Uint16 i;
-   	Uint16 j,k;
-   	Uint16 array_index;
-  	
+
 // Step 1. Initialize System Control:
 	// PLL, WatchDog, enable Peripheral Clocks
 	// This example function is found in the DSP2833x_SysCtrl.c file.
@@ -82,8 +80,9 @@ void main(void)
 // Step 2. Initalize GPIO:
 	// This example function is found in the DSP2833x_Gpio.c file and
 	// illustrates how to set the GPIO to it's default state.
-	//InitGpio();
-	InitXintf16Gpio();
+	InitGpio();
+//	InitXintf16Gpio();
+//	InitLogicIO();
 
 
 // Step 3. Clear all interrupts and initialize PIE vector table:
@@ -139,16 +138,15 @@ void main(void)
 
 // Step 5. User specific code, enable interrupts:
 
-	// Enable CPU int1 which is connected to CPU-Timer 0, CPU int13
-	// which is connected to CPU-Timer 1, and CPU int 14, which is connected
-	// to CPU-Timer 2:
+	// Enable CPU int1 which is connected to CPU-Timer 0,
+	// CPU int13 which is connected to CPU-Timer 1, and 
+	// CPU int 14, which is connectedto CPU-Timer 2:
 	IER |= M_INT1;
 	IER |= M_INT13;
 	IER |= M_INT14;
 
-	// Enable TINT0 and ADCINT in the PIE
+	// Enable TINT0 in the PIE
 	PieCtrlRegs.PIEIER1.bit.INTx7 = 1;	// Group 1 interrupt 7 for timer0
-	PieCtrlRegs.PIEIER1.bit.INTx6 = 1;	// Group 1 interrupt 6 for ADC
 
 	// Enable global Interrupts and higher priority real-time debug events:
 	EINT;   // Enable Global interrupt INTM
@@ -164,52 +162,12 @@ void main(void)
 	LED2 = 1;
 	
 	// Specific ADC setup for this example:
-  	AdcRegs.ADCTRL1.bit.ACQ_PS = ADC_SHCLK;  	// Sequential mode: Sample rate   = 1/[(2+ACQ_PS)*ADC clock in ns]
-                        						// = 1/(3*40ns) =8.3MHz (for 150 MHz SYSCLKOUT)
-					    						// = 1/(3*80ns) =4.17MHz (for 100 MHz SYSCLKOUT)
-					    						// If Simultaneous mode enabled: Sample rate = 1/[(3+ACQ_PS)*ADC clock in ns]
-	AdcRegs.ADCTRL3.bit.ADCCLKPS = ADC_CKPS;
- 	AdcRegs.ADCTRL1.bit.SEQ_CASC = 1;        	// 1  Cascaded mode
- 	AdcRegs.ADCCHSELSEQ1.bit.CONV00 = 0x1;
- 	AdcRegs.ADCTRL1.bit.CONT_RUN = 1;       	// Setup continuous run
-
- 	AdcRegs.ADCTRL1.bit.SEQ_OVRD = 1;       	// Enable Sequencer override feature
-  	AdcRegs.ADCCHSELSEQ1.all = 0x0;         	// Initialize all ADC channel selects to A0
- 	AdcRegs.ADCCHSELSEQ2.all = 0x0;
- 	AdcRegs.ADCCHSELSEQ3.all = 0x0;
-  	AdcRegs.ADCCHSELSEQ4.all = 0x0;
-  	AdcRegs.ADCMAXCONV.bit.MAX_CONV1 = 0x1;  	// convert and store in 8 results registers
-
-	// Clear SampleTable
-   	for (i=0; i<BUF_SIZE; i++)
-   	{
-    	SampleTable[i] = 0;
-   	}
-
-   	for(i=0;i<64;i++)
-   	AD0[i] = 0;
-	// Start SEQ1
-   	AdcRegs.ADCTRL2.all = 0x2000;
+  	SetupAdc();
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
 	for(;;)
 	{
-		// Take ADC data and log them in SampleTable array
-		array_index = 0;
-     	for (i=0; i<(BUF_SIZE); i++)
-     	{
-       		while (AdcRegs.ADCST.bit.INT_SEQ1== 0){}
-
-       		AdcRegs.ADCST.bit.INT_SEQ1_CLR = 1;
-
-       		SampleTable[array_index] = ((AdcRegs.ADCRESULT0)>>4);
-			SampleValue[array_index] = SampleTable[array_index]*3.0/4096;
-			array_index++;
-	   		for(j=0; j<100; j++)
-	    	{
-	    		k++;
-	    	}
-	 	}
+		
 	}	
 	
 
@@ -228,14 +186,14 @@ interrupt void cpu_timer0_isr(void)
     CpuTimer0Regs.TCR.bit.TRB=1;
 
 	LED1=~LED1;
-	
-	// Perform ADC
-	
+
 }
 
 // Interrupt for cpu_timer1
 interrupt void cpu_timer1_isr(void)
 {
+	int i;
+	
 	CpuTimer1.InterruptCount++;
 	// The CPU acknowledges the interrupt.
 	EDIS;
@@ -245,6 +203,14 @@ interrupt void cpu_timer1_isr(void)
     CpuTimer1Regs.TCR.bit.TRB=1;
     
     LED2=~LED2;	
+    
+    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
+    SampleTable = InquireAdc();
+    
+    for (i = 0; i < 16; i++)
+    {
+    	SampleValue[i] = SampleTable[i]*3.0/4096;	
+    }
     
 }
 
@@ -256,28 +222,6 @@ interrupt void cpu_timer1_isr(void)
 //   // The CPU acknowledges the interrupt.
 //	EDIS;
 //}
-
-// Interrupt for ADC
-interrupt void adc_isr(void)
-{
-
-//  	Voltage1[ConversionCount] = AdcRegs.ADCRESULT0 >>4;
-//  	Voltage2[ConversionCount] = AdcRegs.ADCRESULT1 >>4;
-//
-//  	// If 40 conversions have been logged, start over
-//  	if(ConversionCount == 9)
-//  	{
-//  		ConversionCount = 0;
-//  	}
-//  	else ConversionCount++;
-
-  	// Reinitialize for next ADC sequence
-  	AdcRegs.ADCTRL2.bit.RST_SEQ1 = 1;         // Reset SEQ1
-  	AdcRegs.ADCST.bit.INT_SEQ1_CLR = 1;       // Clear INT SEQ1 bit
-  	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;   // Acknowledge interrupt to PIE
-
-  	return;
-}
 
 // Set inital LED states
 void configtestled(void)
