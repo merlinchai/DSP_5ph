@@ -17,6 +17,7 @@
 #include "DSP2833x_Device.h"		// DSP2833x Headerfile Include File
 #include "DSP2833x_Examples.h"   	// DSP2833x Examples Include File
 #include "math.h"					// To perform mathematical functions
+#include "CommonDefine.h"			// Global definitions
 
 #include <stdlib.h>					// Contains malloc()
 
@@ -25,8 +26,8 @@
 #define alpha	1.256637061
 
 // Definitons for registries
-#define LED1 	GpioDataRegs.GPBDAT.bit.GPIO60	// Red LED
-#define	LED2 	GpioDataRegs.GPBDAT.bit.GPIO61	// Green LED
+#define LED1 	GpioDataRegs.GPADAT.bit.GPIO22	// Double LEDs
+#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	// Single LED
 
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
@@ -56,6 +57,7 @@ float SampleValue[16];	// Scaled for actual voltage
 interrupt void cpu_timer0_isr(void);
 interrupt void cpu_timer1_isr(void);
 //interrupt void cpu_timer2_isr(void);
+interrupt void xint1_isr(void);
 
 // Other functions
 void configtestled(void);
@@ -69,20 +71,20 @@ void main(void)
 	// PLL, WatchDog, enable Peripheral Clocks
 	// This example function is found in the DSP2833x_SysCtrl.c file.
 	InitSysCtrl();
-    
-    // Define ADCCLK clock frequency ( less than or equal to 25 MHz )
-	// Assuming InitSysCtrl() has set SYSCLKOUT to 150 MHz
-   	EALLOW;
-   	SysCtrlRegs.HISPCP.all = ADC_MODCLK;
-   	EDIS;
-    
+
     
 // Step 2. Initalize GPIO:
-	// This example function is found in the DSP2833x_Gpio.c file and
-	// illustrates how to set the GPIO to it's default state.
+	// Initialize all GPIO as input
+	// Input sampling is type 1
+	// Enable all pull-ups
+	// Disable ePWM pull-ups
 	InitGpio();
+	
+	// Custom I/O initialization
+	// For external interrupt from FPGA for PWM data
+	InitLogicIO();
+	
 //	InitXintf16Gpio();
-//	InitLogicIO();
 
 
 // Step 3. Clear all interrupts and initialize PIE vector table:
@@ -113,6 +115,7 @@ void main(void)
 	PieVectTable.TINT0 = &cpu_timer0_isr;
 	PieVectTable.XINT13 = &cpu_timer1_isr;
 //	PieVectTable.TINT2 = &cpu_timer2_isr;
+	PieVectTable.XINT1 = &xint1_isr;
 	EDIS;    // This is needed to disable write to EALLOW protected registers
 
 // Step 4. Initialize the Device Peripheral. 
@@ -120,8 +123,8 @@ void main(void)
 	InitCpuTimers();   // For this example, only initialize the Cpu Timers
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
-	// 150MHz CPU Freq, 1 second Period (in uSeconds)
-	ConfigCpuTimer(&CpuTimer0, 150, 2000);
+	// 150MHz CPU Freq 1000000 = 1 sec
+	ConfigCpuTimer(&CpuTimer0, 150, 500000);
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
@@ -132,9 +135,19 @@ void main(void)
 	CpuTimer1Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 //	CpuTimer2Regs.TCR.all = 0x4001; // Use write-only instruction to set TSS bit = 0
 	
-   	// This function is found in DSP2833x_InitPeripherals.c
-	//InitPeripherals(); 	// Not required for this example
-	InitAdc();				// For this example, init the ADC
+	// Define ADCCLK clock frequency ( less than or equal to 25 MHz )
+	// Assuming InitSysCtrl() has set SYSCLKOUT to 150 MHz
+   	EALLOW;
+   	SysCtrlRegs.HISPCP.all = ADC_MODCLK;
+   	EDIS;
+   	
+   	InitAdc();
+	
+   	InitFlash();
+   	InitXintf();
+   	*FPGA_PWMA_Wait5=5000;
+	*FPGA_PWMA_Duty5=5000;
+
 
 // Step 5. User specific code, enable interrupts:
 
@@ -170,7 +183,6 @@ void main(void)
 		
 	}	
 	
-
 }
 
 // Interrupt for cpu_timer0 is used to change LED state
@@ -223,14 +235,68 @@ interrupt void cpu_timer1_isr(void)
 //	EDIS;
 //}
 
+
+// Interrupt for external interrupt from FPGA
+interrupt void xint1_isr(void)
+{
+//	GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
+//	Xint1Count++;
+//	GpioDataRegs.GPATOGGLE.bit.GPIO24=1;
+		*FPGA_PWMA_Wait1=1000;
+		*FPGA_PWMA_Duty1=0;
+
+		*FPGA_PWMA_Wait2=1000;
+		*FPGA_PWMA_Duty2=0;
+
+		*FPGA_PWMA_Wait3=1000;
+		*FPGA_PWMA_Duty3=0;
+
+		*FPGA_PWMA_Wait4=1000;
+		*FPGA_PWMA_Duty4=0;
+
+		*FPGA_PWMA_Wait5=1000;
+		*FPGA_PWMA_Duty5=1000;
+
+		*FPGA_PWMA_Wait6=1000;
+		*FPGA_PWMA_Duty6=2000;
+
+		*FPGA_PWMA_Wait7=1000;
+		*FPGA_PWMA_Duty7=3000;
+
+		*FPGA_PWMA_Wait8=4000;
+		*FPGA_PWMA_Duty8=4000;
+
+		*FPGA_PWMA_Wait9=5000;
+		*FPGA_PWMA_Duty9=5000;
+
+		*FPGA_PWMA_Wait10=6000;
+		*FPGA_PWMA_Duty10=6000;
+
+		*FPGA_PWMA_Wait11=7000;
+		*FPGA_PWMA_Duty11=7000;
+
+		*FPGA_PWMA_Wait12=8000;
+		*FPGA_PWMA_Duty12=8000;
+
+		*DAC1=1024;
+		*DAC2=1024;
+		*DAC3=1024;
+		*DAC4=1024;
+
+	// GpioDataRegs.GPATOGGLE.bit.GPIO24=1;
+	// Acknowledge this interrupt to get more from group 1
+	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+}
+
+
 // Set inital LED states
 void configtestled(void)
 {
    EALLOW;
-   GpioCtrlRegs.GPBMUX2.bit.GPIO60 = 0; // GPIO60 = GPIO60
-   GpioCtrlRegs.GPBDIR.bit.GPIO60 = 1; 
-   GpioCtrlRegs.GPBMUX2.bit.GPIO61 = 0; // GPIO61 = GPIO61
-   GpioCtrlRegs.GPBDIR.bit.GPIO61 = 1;
+   GpioCtrlRegs.GPAMUX2.bit.GPIO19 = 0; // GPIO19 = GPIO19
+   GpioCtrlRegs.GPADIR.bit.GPIO19 = 1; 
+   GpioCtrlRegs.GPAMUX2.bit.GPIO22 = 0; // GPIO22 = GPIO22
+   GpioCtrlRegs.GPADIR.bit.GPIO22 = 1;
    EDIS;
 }
 

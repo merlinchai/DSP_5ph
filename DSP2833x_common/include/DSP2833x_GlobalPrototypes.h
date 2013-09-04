@@ -118,6 +118,7 @@ extern void InitEQep1Gpio(void);
 extern void InitEQep2Gpio(void);
 #endif // endif DSP28_EQEP2
 extern void InitGpio(void);
+extern void InitLogicIO(void);
 extern void InitI2CGpio(void);
 
 extern void InitMcbsp(void);
@@ -160,6 +161,7 @@ extern void InitSysCtrl(void);
 extern void InitTzGpio(void);
 extern void InitXIntrupt(void);
 extern void XintfInit(void);
+extern void InitXintf(void);
 extern void InitXintf16Gpio();
 extern void InitXintf32Gpio();
 extern void InitPll(Uint16 pllcr, Uint16 clkindiv);
