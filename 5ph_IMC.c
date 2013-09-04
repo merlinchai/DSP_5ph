@@ -119,11 +119,24 @@ void main(void)
 	EDIS;    // This is needed to disable write to EALLOW protected registers
 
 // Step 4. Initialize the Device Peripheral. 
+	// Initialize flash control registers
+	InitFlash();
+	
+	// Initialize external interface
+   	InitXintf();
+   	
+   	*FPGA_PWMA_Wait5=5000;
+	*FPGA_PWMA_Duty5=5000;
+	
+	// Specific ADC setup for this example:
+	InitAdc();
+	SetupAdc();	
+	
 	// This function can be found in DSP2833x_CpuTimers.c
 	InitCpuTimers();   // For this example, only initialize the Cpu Timers
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
-	// 150MHz CPU Freq 1000000 = 1 sec
+	// 150MHz CPU Freq; 1000000 = 1 sec
 	ConfigCpuTimer(&CpuTimer0, 150, 500000);
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
@@ -141,12 +154,9 @@ void main(void)
    	SysCtrlRegs.HISPCP.all = ADC_MODCLK;
    	EDIS;
    	
-   	InitAdc();
+   	
 	
-   	InitFlash();
-   	InitXintf();
-   	*FPGA_PWMA_Wait5=5000;
-	*FPGA_PWMA_Duty5=5000;
+   	
 
 
 // Step 5. User specific code, enable interrupts:
@@ -174,8 +184,7 @@ void main(void)
 	LED1 = 0;
 	LED2 = 1;
 	
-	// Specific ADC setup for this example:
-  	SetupAdc();
+
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
 	for(;;)

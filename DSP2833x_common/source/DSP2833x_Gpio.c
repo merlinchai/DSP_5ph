@@ -220,7 +220,7 @@ void InitLogicIO(void)
    XIntruptRegs.XINT1CR.bit.ENABLE = 1;        // Enable Xint1
  //  XIntruptRegs.XINT2CR.bit.ENABLE = 1;        // Enable XINT2
 
-//3, for EI :initialize after delay, 0 is enalbe protection; 1 is hardware initialize: turn off epwm
+//3, for EI :initialize after delay, 0 is enable protection; 1 is hardware initialize: turn off epwm
 	for(i=0;i<30000;i++)
 		{
 			asm("nop");

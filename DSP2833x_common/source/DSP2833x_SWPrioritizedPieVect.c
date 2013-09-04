@@ -504,6 +504,9 @@ void InitPieVectTable(void)
       *Dest++ = *Source++;
    }
    EDIS;
+   
+   // Enable the PIE Vector Table
+   PieCtrlRegs.PIECTRL.bit.ENPIE = 1;
 }
 
 //===========================================================================
