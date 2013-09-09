@@ -23,7 +23,11 @@
 
 // Definitions for constants
 #define PI 		3.141592654
-#define alpha	1.256637061
+#define ALPHA	1.256637061
+
+// Definitions for modulation
+#define	M			0.5
+#define	OUTPUT_FREQ	2
 
 // Definitons for registries
 #define LED1 	GpioDataRegs.GPADAT.bit.GPIO22	// Double LEDs
@@ -50,6 +54,11 @@ EDIS;
 // Global variable for ADC
 int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
 float SampleValue[16];	// Scaled for actual voltage
+
+// Variables for modulation scheme
+float InputVoltage[3];
+float InputCurrent[3];
+float OutputVoltageRef[1000];
 
 // Prototype statements
 // Interrupts
@@ -124,14 +133,6 @@ void main(void)
 	// Initialize external interface
    	InitXintf();
    	
-   	*FPGA_PWMA_Wait5=5000;
-	*FPGA_PWMA_Duty5=5000;
-	
-	*FPGA_PWMA_Wait6=6000;
-	*FPGA_PWMA_Duty6=6000;
-	
-	
-	
 	// Specific ADC setup for this example:
 	InitAdc();
 	SetupAdc();	
@@ -139,9 +140,9 @@ void main(void)
 	// This function can be found in DSP2833x_CpuTimers.c
 	InitCpuTimers();   // For this example, only initialize the Cpu Timers
 
-	// Configure CPU-Timer 0, 1, and 2 to interrupt every second:
+	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 500000);
+	ConfigCpuTimer(&CpuTimer0, 150, 1000);
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
@@ -184,6 +185,8 @@ void main(void)
 // Interrupt for cpu_timer0 is used to change LED state
 interrupt void cpu_timer0_isr(void)
 {
+	int i;
+	
 	CpuTimer0.InterruptCount++;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
@@ -195,6 +198,12 @@ interrupt void cpu_timer0_isr(void)
 
 	LED1=~LED1;
 
+	for (i=0; i<1000; i++)
+	{
+		OutputVoltageRef[i] = OutputVoltageRef[i+1];
+	}
+	
+	OutputVoltageRef[999] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount/1000);
 }
 
 // Interrupt for cpu_timer1
@@ -215,11 +224,17 @@ interrupt void cpu_timer1_isr(void)
     AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
     
-    for (i = 0; i < 16; i++)
+    for (i=0; i<16; i++)
     {
     	SampleValue[i] = SampleTable[i]*3.0/4096;	
     }
     
+    for (i=0; i<3; i++)
+    { 
+    	InputVoltage[i] = SampleValue[i];
+    }
+	
+	   
 }
 
 // Interrupt for cpu_timer2
@@ -301,10 +316,10 @@ float *FivePhaseClarke(float *abc)
 {
 	float* dq = (float*) malloc(sizeof(float)*5);
 	
-	dq[0] = (2/5)*(1*abc[1] + cos(1*alpha)*abc[2] + cos(2*alpha)*abc[3] + cos(3*alpha)*abc[4] + cos(4*alpha)*abc[5]);
-	dq[1] = (2/5)*(0*abc[1] + sin(1*alpha)*abc[2] + sin(2*alpha)*abc[3] + sin(3*alpha)*abc[4] + sin(4*alpha)*abc[5]);
-	dq[2] = (2/5)*(1*abc[1] + cos(2*alpha)*abc[2] + cos(4*alpha)*abc[3] + cos(6*alpha)*abc[4] + cos(8*alpha)*abc[5]);
-	dq[3] = (2/5)*(0*abc[1] + sin(2*alpha)*abc[2] + sin(4*alpha)*abc[3] + sin(6*alpha)*abc[4] + sin(8*alpha)*abc[5]);
+	dq[0] = (2/5)*(1*abc[1] + cos(1*ALPHA)*abc[2] + cos(2*ALPHA)*abc[3] + cos(3*ALPHA)*abc[4] + cos(4*ALPHA)*abc[5]);
+	dq[1] = (2/5)*(0*abc[1] + sin(1*ALPHA)*abc[2] + sin(2*ALPHA)*abc[3] + sin(3*ALPHA)*abc[4] + sin(4*ALPHA)*abc[5]);
+	dq[2] = (2/5)*(1*abc[1] + cos(2*ALPHA)*abc[2] + cos(4*ALPHA)*abc[3] + cos(6*ALPHA)*abc[4] + cos(8*ALPHA)*abc[5]);
+	dq[3] = (2/5)*(0*abc[1] + sin(2*ALPHA)*abc[2] + sin(4*ALPHA)*abc[3] + sin(6*ALPHA)*abc[4] + sin(8*ALPHA)*abc[5]);
 	dq[4] = (2/5)*(0.5*abc[1] + 0.5*abc[2] + 0.5*abc[3] + 0.5*abc[4] + 0.5*abc[5]);
 	
 	return dq;
