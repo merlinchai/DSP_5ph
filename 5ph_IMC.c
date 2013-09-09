@@ -51,7 +51,6 @@ EDIS;
 int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
 float SampleValue[16];	// Scaled for actual voltage
 
-
 // Prototype statements
 // Interrupts
 interrupt void cpu_timer0_isr(void);
@@ -128,6 +127,11 @@ void main(void)
    	*FPGA_PWMA_Wait5=5000;
 	*FPGA_PWMA_Duty5=5000;
 	
+	*FPGA_PWMA_Wait6=6000;
+	*FPGA_PWMA_Duty6=6000;
+	
+	
+	
 	// Specific ADC setup for this example:
 	InitAdc();
 	SetupAdc();	
@@ -153,28 +157,12 @@ void main(void)
    	EALLOW;
    	SysCtrlRegs.HISPCP.all = ADC_MODCLK;
    	EDIS;
-   	
-   	
-	
-   	
-
 
 // Step 5. User specific code, enable interrupts:
 
-	// Enable CPU int1 which is connected to CPU-Timer 0,
-	// CPU int13 which is connected to CPU-Timer 1, and 
-	// CPU int 14, which is connectedto CPU-Timer 2:
-	IER |= M_INT1;
-	IER |= M_INT13;
-	IER |= M_INT14;
-
-	// Enable TINT0 in the PIE
-	PieCtrlRegs.PIEIER1.bit.INTx7 = 1;	// Group 1 interrupt 7 for timer0
-
-	// Enable global Interrupts and higher priority real-time debug events:
-	EINT;   // Enable Global interrupt INTM
-	ERTM;   // Enable Global realtime interrupt DBGM
-   
+	// Enable interrupts
+	EnableInterrupts();
+	 
 	// Setup GPIO
 	//Gpio_setup();
 	
@@ -183,7 +171,6 @@ void main(void)
 	configtestled();
 	LED1 = 0;
 	LED2 = 1;
-	
 
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):

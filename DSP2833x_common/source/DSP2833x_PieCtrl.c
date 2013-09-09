@@ -70,10 +70,28 @@ void EnableInterrupts()
     PieCtrlRegs.PIECTRL.bit.ENPIE = 1;
     		
 	// Enables PIE to drive a pulse into the CPU 
-	PieCtrlRegs.PIEACK.all = 0xFFFF;  
+	PieCtrlRegs.PIEACK.all = 0x0001;  
 
+	// Enable CPU INT1 which is connected to CPU-Timer 0
+   	IER |= M_INT1;
+	// Enable INT3 which is connected to ePWM
+	IER |= M_INT3;  
+	// Enable INT13 which is connected to CPU-Timer 1
+	IER |= M_INT13;
+	// Enable INT14 which is connected to CPU-Timer 2
+	IER |= M_INT14;
+	
+	// Enable TINT0 in the PIE: Group 1 interrupt 7
+   	PieCtrlRegs.PIEIER1.bit.INTx7 = 1;
+   	
+   	// Enable XINT1 and XINT2 in the PIE: Group 1 interrupt 4
+	// Enable INT1 which is connected to WAKEINT:
+   PieCtrlRegs.PIEIER1.bit.INTx4 = 1;
+   
+	
 	// Enable Interrupts at the CPU level 
     EINT;
+    ERTM;
 
 }
 
