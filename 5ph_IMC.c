@@ -30,8 +30,8 @@
 #define	OUTPUT_FREQ	2
 
 // Definitons for registries
-#define LED1 	GpioDataRegs.GPADAT.bit.GPIO22	// Double LEDs
-#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	// Single LED
+#define LED1 	GpioDataRegs.GPADAT.bit.GPIO22	// Single LEDs
+#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	// Double LED
 
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
@@ -142,7 +142,7 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 1000);
+	ConfigCpuTimer(&CpuTimer0, 150, 100);			// Use timer0 as timer to generate output reference
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
@@ -186,8 +186,10 @@ void main(void)
 interrupt void cpu_timer0_isr(void)
 {
 	int i;
+	int Time;
 	
 	CpuTimer0.InterruptCount++;
+	Time = CpuTimer0.InterruptCount/10000;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
 	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
