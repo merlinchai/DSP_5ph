@@ -27,11 +27,15 @@
 
 // Definitions for modulation
 #define	M			0.5
-#define	OUTPUT_FREQ	2
+#define	OUTPUT_FREQ	50
 
 // Definitons for registries
-#define LED1 	GpioDataRegs.GPADAT.bit.GPIO22	// Single LEDs
-#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	// Double LED
+#define LED1 	GpioDataRegs.GPADAT.bit.GPIO18	
+#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	
+#define	LED3 	GpioDataRegs.GPADAT.bit.GPIO22	
+#define	LED4 	GpioDataRegs.GPADAT.bit.GPIO23	
+#define	LED5 	GpioDataRegs.GPBDAT.bit.GPIO62	
+#define	LED6 	GpioDataRegs.GPBDAT.bit.GPIO63	
 
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
@@ -58,7 +62,7 @@ float SampleValue[16];	// Scaled for actual voltage
 // Variables for modulation scheme
 float InputVoltage[3];
 float InputCurrent[3];
-float OutputVoltageRef[1000];
+float OutputVoltageRef[50];
 
 // Prototype statements
 // Interrupts
@@ -142,7 +146,7 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 100);			// Use timer0 as timer to generate output reference
+	ConfigCpuTimer(&CpuTimer0, 150, 400);			// Use timer0 as timer to generate output reference
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
@@ -171,7 +175,11 @@ void main(void)
 	// 1 is OFF; 0 is ON
 	configtestled();
 	LED1 = 0;
-	LED2 = 1;
+	LED2 = 0;
+	LED3 = 0;
+	LED4 = 0;
+	LED5 = 0;
+	LED6 = 0;	
 
 
 // Step 6. IDLE loop. Just sit and loop forever (optional):
@@ -186,10 +194,8 @@ void main(void)
 interrupt void cpu_timer0_isr(void)
 {
 	int i;
-	int Time;
 	
 	CpuTimer0.InterruptCount++;
-	Time = CpuTimer0.InterruptCount/10000;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
 	PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
@@ -200,12 +206,12 @@ interrupt void cpu_timer0_isr(void)
 
 	LED1=~LED1;
 
-	for (i=0; i<1000; i++)
+	for (i=0; i<50; i++)
 	{
 		OutputVoltageRef[i] = OutputVoltageRef[i+1];
 	}
 	
-	OutputVoltageRef[999] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount/1000);
+	OutputVoltageRef[49] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount);
 }
 
 // Interrupt for cpu_timer1
@@ -221,7 +227,11 @@ interrupt void cpu_timer1_isr(void)
 	CpuTimer1Regs.TCR.bit.TIF=1;
     CpuTimer1Regs.TCR.bit.TRB=1;
     
-    LED2=~LED2;	
+    LED2=~LED2;
+    LED3=~LED3;
+    LED4=~LED4;
+    LED5=~LED5;
+    LED6=~LED6;		
     
     AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
@@ -291,10 +301,10 @@ interrupt void xint1_isr(void)
 		*FPGA_PWMA_Wait12=8000;
 		*FPGA_PWMA_Duty12=8000;
 
-		*DAC1=1024;
-		*DAC2=1024;
-		*DAC3=1024;
-		*DAC4=1024;
+//		*DAC1=1024;
+//		*DAC2=1024;
+//		*DAC3=1024;
+//		*DAC4=1024;
 
 	// GpioDataRegs.GPATOGGLE.bit.GPIO24=1;
 	// Acknowledge this interrupt to get more from group 1
@@ -306,10 +316,18 @@ interrupt void xint1_isr(void)
 void configtestled(void)
 {
    EALLOW;
-   GpioCtrlRegs.GPAMUX2.bit.GPIO19 = 0; // GPIO19 = GPIO19
-   GpioCtrlRegs.GPADIR.bit.GPIO19 = 1; 
-   GpioCtrlRegs.GPAMUX2.bit.GPIO22 = 0; // GPIO22 = GPIO22
-   GpioCtrlRegs.GPADIR.bit.GPIO22 = 1;
+   GpioCtrlRegs.GPAMUX2.bit.GPIO18 = 0;
+   GpioCtrlRegs.GPADIR.bit.GPIO18 = 1; 
+   GpioCtrlRegs.GPAMUX2.bit.GPIO19 = 0;
+   GpioCtrlRegs.GPADIR.bit.GPIO19 = 1;
+   GpioCtrlRegs.GPAMUX2.bit.GPIO22 = 0;
+   GpioCtrlRegs.GPADIR.bit.GPIO22 = 1; 
+   GpioCtrlRegs.GPAMUX2.bit.GPIO23 = 0;
+   GpioCtrlRegs.GPADIR.bit.GPIO23 = 1; 
+   GpioCtrlRegs.GPBMUX2.bit.GPIO62 = 0;
+   GpioCtrlRegs.GPBDIR.bit.GPIO62 = 1; 
+   GpioCtrlRegs.GPBMUX2.bit.GPIO63 = 0;
+   GpioCtrlRegs.GPBDIR.bit.GPIO63 = 1; 
    EDIS;
 }
 
