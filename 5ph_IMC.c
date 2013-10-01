@@ -27,7 +27,7 @@
 
 // Definitions for modulation
 #define	M			0.5
-#define	OUTPUT_FREQ	50
+#define	OUTPUT_FREQ	60
 
 // Definitons for registries
 #define LED1 	GpioDataRegs.GPADAT.bit.GPIO18	
@@ -57,12 +57,13 @@ EDIS;
 
 // Global variable for ADC
 int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
-float SampleValue[16];	// Scaled for actual voltage
 
 // Variables for modulation scheme
 float InputVoltage[3];
 float InputCurrent[3];
-float OutputVoltageRef[50];
+float OutputVoltageRef[5];
+float OutputVoltageDQ[5]; 
+float *OutputVoltageDQBuffer;
 
 // Prototype statements
 // Interrupts
@@ -146,7 +147,7 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 400);			// Use timer0 as timer to generate output reference
+	ConfigCpuTimer(&CpuTimer0, 150, 500);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
 	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
@@ -190,11 +191,29 @@ void main(void)
 	
 }
 
-// Interrupt for cpu_timer0 is used to change LED state
+// Interrupt for cpu_timer0 is used to generate output reference voltages
 interrupt void cpu_timer0_isr(void)
 {
 	int i;
 	
+	// Output reference voltages
+	for (i=0; i<5; i++)
+	{
+		OutputVoltageRef[i] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount*0.0005 - i*2*PI/5);
+	}
+	
+	// dq transformation for output reference voltages
+	OutputVoltageDQBuffer = FivePhaseClarke(OutputVoltageRef);
+	
+	for (i = 0; i<5; i++)
+	{
+		OutputVoltageDQ[i] = OutputVoltageDQBuffer[i];	
+	}
+	
+	free(OutputVoltageDQBuffer);
+	
+	// Toggle LED1
+	LED1=~LED1;	
 	CpuTimer0.InterruptCount++;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
@@ -203,15 +222,6 @@ interrupt void cpu_timer0_isr(void)
 	// Copied from LED code
 	CpuTimer0Regs.TCR.bit.TIF=1;
     CpuTimer0Regs.TCR.bit.TRB=1;
-
-	LED1=~LED1;
-
-	for (i=0; i<50; i++)
-	{
-		OutputVoltageRef[i] = OutputVoltageRef[i+1];
-	}
-	
-	OutputVoltageRef[49] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount);
 }
 
 // Interrupt for cpu_timer1
@@ -226,27 +236,25 @@ interrupt void cpu_timer1_isr(void)
 	// Copied from LED code
 	CpuTimer1Regs.TCR.bit.TIF=1;
     CpuTimer1Regs.TCR.bit.TRB=1;
+        
+    // Inquire ADC
+    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
+    SampleTable = InquireAdc();
     
+    // Convert ADC values to volts
+    for (i=0; i<16; i++)
+    {
+    	InputVoltage[i] = SampleTable[i]*3.0/4096;	
+    }
+    
+    free(SampleTable);
+    
+    // Toggle LEDs
     LED2=~LED2;
     LED3=~LED3;
     LED4=~LED4;
     LED5=~LED5;
     LED6=~LED6;		
-    
-    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
-    SampleTable = InquireAdc();
-    
-    for (i=0; i<16; i++)
-    {
-    	SampleValue[i] = SampleTable[i]*3.0/4096;	
-    }
-    
-    for (i=0; i<3; i++)
-    { 
-    	InputVoltage[i] = SampleValue[i];
-    }
-	
-	   
 }
 
 // Interrupt for cpu_timer2

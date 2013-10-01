@@ -120,7 +120,7 @@ int16 *InquireAdc(void)
 //	int16 result00, result01, result02, result03, result04, result05, result06, result07;
 //	int16 result08, result09, result10, result11, result12, result13, result14, result15;
 	
-	int16* result = (int16*) malloc(sizeof(int16)*16);
+	int16* result = (int16*) malloc(16*sizeof(int16));
 	
 	// Sample ADC until complete
 	while (AdcRegs.ADCST.bit.INT_SEQ1 == 0){}
