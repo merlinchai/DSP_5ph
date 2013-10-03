@@ -23,8 +23,7 @@
 
 // Definitions for constants
 #define PI 		3.141592654
-#define ALPHA3	2.094395102
-#define ALPHA5	1.256637061
+#define ALPHA	1.256637061
 
 // Definitions for modulation
 #define	M			0.5
@@ -62,12 +61,6 @@ int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
 // Variables for modulation scheme
 float InputVoltage[3];
 float InputCurrent[3];
-float InputVoltageDQ[3];
-float InputCurrentDQ[3];
-float *InputVoltageDQBuffer;
-float *InputCurrentDQBuffer;
-
-
 float OutputVoltageRef[5];
 float OutputVoltageDQ[5]; 
 float *OutputVoltageDQBuffer;
@@ -81,8 +74,7 @@ interrupt void xint1_isr(void);
 
 // Other functions
 void configtestled(void);
-float *ThreePhaseClarke(float *abc);
-float *FivePhaseClarke(float *abcde);
+float *FivePhaseClarke(float *abc);
 
 
 void main(void)
@@ -246,30 +238,11 @@ interrupt void cpu_timer1_isr(void)
     AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
     
-    // Convert ADC values to volts and amps
-    // *** Need to determine which registers are connected
-    // *** Need to determine correct scale factor
-    InputVoltage[0] = SampleTable[0]*3.0/4096;
-    InputVoltage[1] = SampleTable[1]*3.0/4096;
-    InputVoltage[2] = SampleTable[2]*3.0/4096;
-    
-    InputCurrent[0] = SampleTable[3]*3.0/4096;
-    InputCurrent[1] = SampleTable[4]*3.0/4096;
-    InputCurrent[2] = SampleTable[5]*3.0/4096;
-   
-    // dq transformation for input measurements
-    InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
-    InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
-    
-    for (i=0; i<3; i++)
+    // Convert ADC values to volts
+    for (i=0; i<16; i++)
     {
-    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
-    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
+    	InputVoltage[i] = SampleTable[i]*3.0/4096;	
     }
-    
-    // Free memory allocation in dq transformation function
-    free(InputVoltageDQBuffer);
-    free(InputCurrentDQBuffer);
     
     free(SampleTable);
     
@@ -363,30 +336,18 @@ void configtestled(void)
    EDIS;
 }
 
-// Function to perform 3 phase Clarke's transformation
-float *ThreePhaseClarke(float *abc)
+// Function to perform five phase Clarke's transformation
+float *FivePhaseClarke(float *abc)
 {
-	float* dq3 = (float*) malloc(sizeof(float)*5);
+	float* dq = (float*) malloc(sizeof(float)*5);
 	
-	dq3[0] = (2/3)*(1*abc[0] + cos(1*ALPHA3)*abc[1] + cos(2*ALPHA3)*abc[2]);
-	dq3[1] = (2/3)*(0*abc[0] + sin(1*ALPHA3)*abc[1] + sin(2*ALPHA3)*abc[2]);
-	dq3[2] = (2/3)*(0.5*abc[0] + 0.5*abc[1] + 0.5*abc[2]);
+	dq[0] = (2/5)*(1*abc[1] + cos(1*ALPHA)*abc[2] + cos(2*ALPHA)*abc[3] + cos(3*ALPHA)*abc[4] + cos(4*ALPHA)*abc[5]);
+	dq[1] = (2/5)*(0*abc[1] + sin(1*ALPHA)*abc[2] + sin(2*ALPHA)*abc[3] + sin(3*ALPHA)*abc[4] + sin(4*ALPHA)*abc[5]);
+	dq[2] = (2/5)*(1*abc[1] + cos(2*ALPHA)*abc[2] + cos(4*ALPHA)*abc[3] + cos(6*ALPHA)*abc[4] + cos(8*ALPHA)*abc[5]);
+	dq[3] = (2/5)*(0*abc[1] + sin(2*ALPHA)*abc[2] + sin(4*ALPHA)*abc[3] + sin(6*ALPHA)*abc[4] + sin(8*ALPHA)*abc[5]);
+	dq[4] = (2/5)*(0.5*abc[1] + 0.5*abc[2] + 0.5*abc[3] + 0.5*abc[4] + 0.5*abc[5]);
 	
-	return dq3;
-}
-
-// Function to perform 5 phase Clarke's transformation
-float *FivePhaseClarke(float *abcde)
-{
-	float* dq5 = (float*) malloc(sizeof(float)*5);
-	
-	dq5[0] = (2/5)*(1*abcde[0] + cos(1*ALPHA5)*abcde[1] + cos(2*ALPHA5)*abcde[2] + cos(3*ALPHA5)*abcde[3] + cos(4*ALPHA5)*abcde[4]);
-	dq5[1] = (2/5)*(0*abcde[0] + sin(1*ALPHA5)*abcde[1] + sin(2*ALPHA5)*abcde[2] + sin(3*ALPHA5)*abcde[3] + sin(4*ALPHA5)*abcde[4]);
-	dq5[2] = (2/5)*(1*abcde[0] + cos(2*ALPHA5)*abcde[1] + cos(4*ALPHA5)*abcde[2] + cos(6*ALPHA5)*abcde[3] + cos(8*ALPHA5)*abcde[4]);
-	dq5[3] = (2/5)*(0*abcde[0] + sin(2*ALPHA5)*abcde[1] + sin(4*ALPHA5)*abcde[2] + sin(6*ALPHA5)*abcde[3] + sin(8*ALPHA5)*abcde[4]);
-	dq5[4] = (2/5)*(0.5*abcde[0] + 0.5*abcde[1] + 0.5*abcde[2] + 0.5*abcde[3] + 0.5*abcde[4]);
-	
-	return dq5;
+	return dq;
 }
 
 //===========================================================================
