@@ -8,6 +8,8 @@
 //--------------------------------------------
 
 // PWM module definition
+// PWMA on the actual hardware is misaligned
+// Recommend to use PWMB,C,D,E instead
 #define FPGA_PWMA_Period (unsigned int *)0x210000
 #define FPGA_PWMA_Wait1 (unsigned int *)0x210001
 #define FPGA_PWMA_Duty1 (unsigned int *)0x210002
@@ -179,6 +181,13 @@
 
 #define FPGA_DATA_Test_length 8
 
+// Inverter space vectors
+// Space vectors -15 to 15, then 0
+extern int SpaceVectorsInv[32][5];
+
+// Rectifier space vectors			
+// Space vectors -3 to 3, then 0					  
+extern int SpaceVectorsRec[9][2];
 
 #endif    // end of Commondefine.h definition
 
