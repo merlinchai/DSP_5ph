@@ -30,16 +30,6 @@
 #define	M			0.5
 #define	OUTPUT_FREQ	60
 
-// Definitons for registries
-#define LED1 	GpioDataRegs.GPADAT.bit.GPIO18	
-#define	LED2 	GpioDataRegs.GPADAT.bit.GPIO19	
-#define	LED3 	GpioDataRegs.GPADAT.bit.GPIO22	
-#define	LED4 	GpioDataRegs.GPADAT.bit.GPIO23	
-#define	LED5 	GpioDataRegs.GPBDAT.bit.GPIO62	
-#define	LED6 	GpioDataRegs.GPBDAT.bit.GPIO63	
-
-int LEDRoll;
-
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
 // The other two should be defined as 0.
@@ -51,12 +41,15 @@ int LEDRoll;
 EALLOW;
 #define ADC_MODCLK 0x3		// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)		= 25.0 MHz
 EDIS;
-
 #define ADC_CKPS   0x0		// ADC module clock = HSPCLK/1      = 25.5MHz/(1)   = 25.0 MHz
 #define ADC_SHCLK  0x1		// S/H width in ADC module periods                  = 2 ADC cycle
 #define AVG        1000		// Average sample limit
 #define ZOFFSET    0x00		// Average Zero offset
 #define BUF_SIZE   16		// Sample buffer size
+
+
+// LED location
+int LEDRoll = 1;
 
 // Global variable for ADC
 int16 *SampleTable;		// Actual ADC reading - 4096 for 3V
@@ -157,7 +150,7 @@ void main(void)
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
 	ConfigCpuTimer(&CpuTimer0, 150, 500);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
-	ConfigCpuTimer(&CpuTimer1, 150, 1000000);
+	ConfigCpuTimer(&CpuTimer1, 150, 100000);		// Blink LED at 0.1s
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
@@ -393,7 +386,7 @@ void configtestled(void)
    		
 		
    	// 1 is OFF
-   	GpioDataRegs.GPASET.bit.GPIO18 = 1;
+   	GpioDataRegs.GPACLEAR.bit.GPIO18 = 1;
 	GpioDataRegs.GPASET.bit.GPIO19 = 1;
 	GpioDataRegs.GPASET.bit.GPIO22 = 1;
 	GpioDataRegs.GPASET.bit.GPIO23 = 1;
