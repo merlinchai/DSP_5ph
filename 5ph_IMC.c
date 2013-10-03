@@ -168,6 +168,9 @@ void main(void)
 
 	// Enable interrupts
 	EnableInterrupts();
+	 
+	// Setup GPIO
+	//Gpio_setup();
 	
 	// LED setup
 	// 1 is OFF; 0 is ON
@@ -288,14 +291,14 @@ interrupt void xint1_isr(void)
 		*FPGA_PWMA_Wait6=1000;
 		*FPGA_PWMA_Duty6=2000;
 
-		*FPGA_PWMA_Wait7=0x3A98;
-		*FPGA_PWMA_Duty7=0;//3000;
+		*FPGA_PWMA_Wait7=1000;
+		*FPGA_PWMA_Duty7=3000;
 
 		*FPGA_PWMA_Wait8=4000;
 		*FPGA_PWMA_Duty8=4000;
 
-		*FPGA_PWMA_Wait9=4000;
-		*FPGA_PWMA_Duty9=4000;
+		*FPGA_PWMA_Wait9=5000;
+		*FPGA_PWMA_Duty9=5000;
 
 		*FPGA_PWMA_Wait10=6000;
 		*FPGA_PWMA_Duty10=6000;
