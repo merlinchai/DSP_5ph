@@ -38,6 +38,8 @@
 #define	LED5 	GpioDataRegs.GPBDAT.bit.GPIO62	
 #define	LED6 	GpioDataRegs.GPBDAT.bit.GPIO63	
 
+int LEDRoll;
+
 // Determine when the shift to right justify the data takes place
 // Only one of these should be defined as 1.
 // The other two should be defined as 0.
@@ -197,7 +199,7 @@ interrupt void cpu_timer0_isr(void)
 {
 	int i;
 	
-	 // Inquire ADC
+	// Inquire ADC
     AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
     
@@ -212,7 +214,7 @@ interrupt void cpu_timer0_isr(void)
     InputCurrent[1] = SampleTable[4]*3.0/4096;
     InputCurrent[2] = SampleTable[5]*3.0/4096;
    
-    // dq transformation for input measurements
+    //dq transformation for input measurements
     InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
     InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
     
@@ -243,7 +245,7 @@ interrupt void cpu_timer0_isr(void)
 	}
 	
 	free(OutputVoltageDQBuffer);
-	
+
 	CpuTimer0.InterruptCount++;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
@@ -252,16 +254,12 @@ interrupt void cpu_timer0_isr(void)
 	// Copied from LED code
 	CpuTimer0Regs.TCR.bit.TIF=1;
     CpuTimer0Regs.TCR.bit.TRB=1;
-    
-    // Toggle LED
-    LED1 =~ LED1;
+
 }
 
 // Interrupt for cpu_timer1
 interrupt void cpu_timer1_isr(void)
 {
-	int LEDTemp;
-	
 	CpuTimer1.InterruptCount++;
 	// The CPU acknowledges the interrupt.
 	EDIS;
@@ -269,14 +267,47 @@ interrupt void cpu_timer1_isr(void)
 	// Copied from LED code
 	CpuTimer1Regs.TCR.bit.TIF=1;
     CpuTimer1Regs.TCR.bit.TRB=1;
-        
-	// Toggle LED
-	LEDTemp = LED2;
-	LED2 = LED3;
-	LED3 = LED4;
-	LED4 = LED5;
-	LED5 = LED6;
-	LED6 = LEDTemp;	   
+    
+    // Toggle LEDs
+    switch (LEDRoll)
+    {
+    	case 0:
+    		GpioDataRegs.GPBTOGGLE.bit.GPIO63 = 1;
+    		GpioDataRegs.GPATOGGLE.bit.GPIO18 = 1;
+    		break;
+    	case 1:
+    		GpioDataRegs.GPATOGGLE.bit.GPIO18 = 1;
+    		GpioDataRegs.GPATOGGLE.bit.GPIO19 = 1;
+    		break;
+    	case 2:
+    		GpioDataRegs.GPATOGGLE.bit.GPIO19 = 1;
+    		GpioDataRegs.GPATOGGLE.bit.GPIO22 = 1;
+    		break;
+    	case 3:
+    		GpioDataRegs.GPATOGGLE.bit.GPIO22 = 1;
+    		GpioDataRegs.GPATOGGLE.bit.GPIO23 = 1;
+    		break;
+    	case 4:
+    		GpioDataRegs.GPATOGGLE.bit.GPIO23 = 1;
+    		GpioDataRegs.GPBTOGGLE.bit.GPIO62 = 1;
+    		break;
+    	case 5:
+    		GpioDataRegs.GPBTOGGLE.bit.GPIO62 = 1;
+    		GpioDataRegs.GPBTOGGLE.bit.GPIO63 = 1;
+    		break;
+    	default:
+    		GpioDataRegs.GPATOGGLE.bit.GPIO18 = 1;
+    		LEDRoll = 0;
+    		break;    	
+    }
+    
+    if (LEDRoll == 5) {
+    	LEDRoll = 0;
+    }
+    else {
+    	LEDRoll++;	
+    }
+	
 }
 
 // Interrupt for cpu_timer2
@@ -359,15 +390,18 @@ void configtestled(void)
    	GpioCtrlRegs.GPBMUX2.bit.GPIO63 = 0;
    	GpioCtrlRegs.GPBDIR.bit.GPIO63 = 1; 
    	EDIS;
-   
+   		
+		
    	// 1 is OFF
-   	LED1 = 1;
-	LED2 = 1;
-	LED3 = 1;
-	LED4 = 1;
-	LED5 = 1;
-	LED6 = 0;	
+   	GpioDataRegs.GPASET.bit.GPIO18 = 1;
+	GpioDataRegs.GPASET.bit.GPIO19 = 1;
+	GpioDataRegs.GPASET.bit.GPIO22 = 1;
+	GpioDataRegs.GPASET.bit.GPIO23 = 1;
+	GpioDataRegs.GPBSET.bit.GPIO62 = 1;
+	GpioDataRegs.GPBSET.bit.GPIO63 = 1;
+	
 }
+
 
 // Function to perform 3 phase Clarke's transformation
 float *ThreePhaseClarke(float *abc)

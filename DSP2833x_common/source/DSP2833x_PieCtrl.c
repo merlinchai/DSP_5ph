@@ -87,8 +87,7 @@ void EnableInterrupts()
    	// Enable XINT1 and XINT2 in the PIE: Group 1 interrupt 4
 	// Enable INT1 which is connected to WAKEINT:
    PieCtrlRegs.PIEIER1.bit.INTx4 = 1;
-   
-	
+
 	// Enable Interrupts at the CPU level 
     EINT;
     ERTM;
