@@ -62,6 +62,8 @@ float InputCurrentDQ[3];
 float *InputVoltageDQBuffer;
 float *InputCurrentDQBuffer;
 
+float Channel1ADC[100];
+
 float OutputVoltageRef[5];
 float OutputVoltageDQ[5]; 
 float *OutputVoltageDQBuffer;
@@ -150,7 +152,7 @@ void main(void)
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
 	ConfigCpuTimer(&CpuTimer0, 150, 500);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
-	ConfigCpuTimer(&CpuTimer1, 150, 100000);		// Blink LED at 0.1s
+	ConfigCpuTimer(&CpuTimer1, 150, 1000000);		// Blink LED at 0.1s
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
@@ -191,7 +193,7 @@ void main(void)
 interrupt void cpu_timer0_isr(void)
 {
 	int i;
-	
+
 	// Inquire ADC
     AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
@@ -206,7 +208,7 @@ interrupt void cpu_timer0_isr(void)
     InputCurrent[0] = SampleTable[3]*3.0/4096;
     InputCurrent[1] = SampleTable[4]*3.0/4096;
     InputCurrent[2] = SampleTable[5]*3.0/4096;
-   
+    
     //dq transformation for input measurements
     InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
     InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
@@ -217,12 +219,19 @@ interrupt void cpu_timer0_isr(void)
     	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
     }
     
+//    for (i=0; i<99; i++)
+//    {
+//    	Channel1ADC[99-i] = Channel1ADC[98-i];
+//    }
+//    
+//    Channel1ADC[0] = InputVoltage[0]*10;
+    
     // Free memory allocation in dq transformation function
     free(InputVoltageDQBuffer);
-    free(InputCurrentDQBuffer);
-    free(SampleTable);
+    free(InputCurrentDQBuffer);    
+	free(SampleTable);
     
-	
+    
 	// Generate output reference voltages
 	for (i=0; i<5; i++)
 	{
@@ -316,44 +325,45 @@ interrupt void cpu_timer1_isr(void)
 // Interrupt for external interrupt from FPGA
 interrupt void xint1_isr(void)
 {
+	   
 //	GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
 //	Xint1Count++;
 //	GpioDataRegs.GPATOGGLE.bit.GPIO24=1;
-		*FPGA_PWMA_Wait1=1000;
-		*FPGA_PWMA_Duty1=0;
+	*FPGA_PWMA_Wait1=1000;
+	*FPGA_PWMA_Duty1=0;
 
-		*FPGA_PWMA_Wait2=1000;
-		*FPGA_PWMA_Duty2=0;
+	*FPGA_PWMA_Wait2=1000;
+	*FPGA_PWMA_Duty2=0;
 
-		*FPGA_PWMA_Wait3=1000;
-		*FPGA_PWMA_Duty3=0;
+	*FPGA_PWMA_Wait3=1000;
+	*FPGA_PWMA_Duty3=0;
 
-		*FPGA_PWMA_Wait4=1000;
-		*FPGA_PWMA_Duty4=0;
+	*FPGA_PWMA_Wait4=1000;
+	*FPGA_PWMA_Duty4=0;
 
-		*FPGA_PWMA_Wait5=1000;
-		*FPGA_PWMA_Duty5=1000;
+	*FPGA_PWMA_Wait5=1000;
+	*FPGA_PWMA_Duty5=1000;
 
-		*FPGA_PWMA_Wait6=1000;
-		*FPGA_PWMA_Duty6=2000;
+	*FPGA_PWMA_Wait6=1000;
+	*FPGA_PWMA_Duty6=2000;
 
-		*FPGA_PWMA_Wait7=1000;
-		*FPGA_PWMA_Duty7=3000;
+	*FPGA_PWMA_Wait7=1000;
+	*FPGA_PWMA_Duty7=3000;
 
-		*FPGA_PWMA_Wait8=4000;
-		*FPGA_PWMA_Duty8=4000;
+	*FPGA_PWMA_Wait8=4000;
+	*FPGA_PWMA_Duty8=4000;
 
-		*FPGA_PWMA_Wait9=5000;
-		*FPGA_PWMA_Duty9=5000;
+	*FPGA_PWMA_Wait9=5000;
+	*FPGA_PWMA_Duty9=5000;
 
-		*FPGA_PWMA_Wait10=6000;
-		*FPGA_PWMA_Duty10=6000;
+	*FPGA_PWMA_Wait10=6000;
+	*FPGA_PWMA_Duty10=6000;
 
-		*FPGA_PWMA_Wait11=7000;
-		*FPGA_PWMA_Duty11=7000;
+	*FPGA_PWMA_Wait11=7000;
+	*FPGA_PWMA_Duty11=7000;
 
-		*FPGA_PWMA_Wait12=8000;
-		*FPGA_PWMA_Duty12=8000;
+	*FPGA_PWMA_Wait12=8000;
+	*FPGA_PWMA_Duty12=8000;
 
 //		*DAC1=1024;
 //		*DAC2=1024;
