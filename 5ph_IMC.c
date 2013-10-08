@@ -46,7 +46,7 @@ EDIS;
 #define AVG        	1000	// Average sample limit
 #define ZOFFSET    	0x00	// Average Zero offset
 #define BUF_SIZE   	16		// Sample buffer size
-#define ADCArray	299
+#define ADCArray	149
 
 
 // LED location
