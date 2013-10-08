@@ -8,9 +8,9 @@
 // TITLE:   Modulation scheme for 5 phase indirect matrix converter
 // 
 //       Watch Variables:
-//          CpuTimer0.InterruptCount
-//          CpuTimer1.InterruptCount
-//          CpuTimer2.InterruptCount
+//          GoodADC
+//          BadADC
+//          TestADC
 
 
 #include "DSP28x_Project.h"     	// Device Headerfile and Examples Include File
@@ -41,11 +41,12 @@
 EALLOW;
 #define ADC_MODCLK 0x3		// HSPCLK = SYSCLKOUT/2*ADC_MODCLK2 = 150/(2*3)		= 25.0 MHz
 EDIS;
-#define ADC_CKPS   0x0		// ADC module clock = HSPCLK/1      = 25.5MHz/(1)   = 25.0 MHz
-#define ADC_SHCLK  0x1		// S/H width in ADC module periods                  = 2 ADC cycle
-#define AVG        1000		// Average sample limit
-#define ZOFFSET    0x00		// Average Zero offset
-#define BUF_SIZE   16		// Sample buffer size
+#define ADC_CKPS   	0x0		// ADC module clock = HSPCLK/1      = 25.5MHz/(1)   = 25.0 MHz
+#define ADC_SHCLK  	0x1		// S/H width in ADC module periods                  = 2 ADC cycle
+#define AVG        	1000	// Average sample limit
+#define ZOFFSET    	0x00	// Average Zero offset
+#define BUF_SIZE   	16		// Sample buffer size
+#define ADCArray	299
 
 
 // LED location
@@ -62,7 +63,9 @@ float InputCurrentDQ[3];
 float *InputVoltageDQBuffer;
 float *InputCurrentDQBuffer;
 
-float Channel1ADC[100];
+float GoodADC[ADCArray+1];
+float BadADC[ADCArray+1];
+float TestADC[16];
 
 float OutputVoltageRef[5];
 float OutputVoltageDQ[5]; 
@@ -151,8 +154,8 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 500);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
-	ConfigCpuTimer(&CpuTimer1, 150, 1000000);		// Blink LED at 0.1s
+	ConfigCpuTimer(&CpuTimer0, 150, 200);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
+	ConfigCpuTimer(&CpuTimer1, 150, 1000000);		// Blink LED at 1s
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
@@ -192,61 +195,69 @@ void main(void)
 // Interrupt for cpu_timer0
 interrupt void cpu_timer0_isr(void)
 {
-	int i;
-
-	// Inquire ADC
-    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
-    SampleTable = InquireAdc();
-    
-    // Convert ADC values to volts and amps
-    // *** Need to determine which registers are connected
-    // *** Need to determine correct scale factor
-    InputVoltage[0] = SampleTable[0]*3.0/4096;
-    InputVoltage[1] = SampleTable[1]*3.0/4096;
-    InputVoltage[2] = SampleTable[2]*3.0/4096;
-    
-    InputCurrent[0] = SampleTable[3]*3.0/4096;
-    InputCurrent[1] = SampleTable[4]*3.0/4096;
-    InputCurrent[2] = SampleTable[5]*3.0/4096;
-    
-    //dq transformation for input measurements
-    InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
-    InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
-    
-    for (i=0; i<3; i++)
-    {
-    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
-    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
-    }
-    
-//    for (i=0; i<99; i++)
+//	int i;
+//
+//	// Inquire ADC
+//    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
+//    SampleTable = InquireAdc();
+//    
+//    for (i=0; i<16; i++)
 //    {
-//    	Channel1ADC[99-i] = Channel1ADC[98-i];
+//    	TestADC[i] = SampleTable[i];	
 //    }
 //    
-//    Channel1ADC[0] = InputVoltage[0]*10;
-    
-    // Free memory allocation in dq transformation function
-    free(InputVoltageDQBuffer);
-    free(InputCurrentDQBuffer);    
-	free(SampleTable);
-    
-    
-	// Generate output reference voltages
-	for (i=0; i<5; i++)
-	{
-		OutputVoltageRef[i] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount*0.0005 - i*2*PI/5);
-	}
-	
-	// dq transformation for output reference voltages
-	OutputVoltageDQBuffer = FivePhaseClarke(OutputVoltageRef);
-	
-	for (i = 0; i<5; i++)
-	{
-		OutputVoltageDQ[i] = OutputVoltageDQBuffer[i];	
-	}
-	
-	free(OutputVoltageDQBuffer);
+//    // Convert ADC values to volts and amps
+//    // *** Need to determine which registers are connected
+//    // *** Need to determine correct scale factor
+//    InputVoltage[0] = SampleTable[0]*3.0/4096;
+//    InputVoltage[1] = SampleTable[1]*3.0/4096;
+//    InputVoltage[2] = SampleTable[2]*3.0/4096;
+//    
+//    InputCurrent[0] = SampleTable[3]*3.0/4096;
+//    InputCurrent[1] = SampleTable[4]*3.0/4096;
+//
+//    InputCurrent[2] = SampleTable[5]*3.0/4096;
+//    
+//    //dq transformation for input measurements
+//    InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
+//    InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
+//    
+//    for (i=0; i<3; i++)
+//    {
+//    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
+//    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
+//    }
+//    
+//    for (i=0; i<99; i++)
+//    {
+//    	GoodADC[99-i] = GoodADC[98-i];
+//    	BadADC[99-i] = BadADC[98-i];
+//    }
+//    
+//    GoodADC[0] = SampleTable[0]*3.0/4096;
+//    BadADC[0] = SampleTable[2]*3.0/4096;
+//    
+//    // Free memory allocation in dq transformation function
+//    free(InputVoltageDQBuffer);
+//    free(InputCurrentDQBuffer);    
+//	free(SampleTable);
+//    
+//    
+//	// Generate output reference voltages
+//	for (i=0; i<5; i++)
+//	{
+//		OutputVoltageRef[i] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount*0.0005 - i*2*PI/5);
+//	}
+//	
+//	// dq transformation for output reference voltages
+//	OutputVoltageDQBuffer = FivePhaseClarke(OutputVoltageRef);
+//	
+//	for (i = 0; i<5; i++)
+//	{
+//		OutputVoltageDQ[i] = OutputVoltageDQBuffer[i];	
+//	}
+//	
+//	free(OutputVoltageDQBuffer);
 
 	CpuTimer0.InterruptCount++;
 
@@ -325,6 +336,28 @@ interrupt void cpu_timer1_isr(void)
 // Interrupt for external interrupt from FPGA
 interrupt void xint1_isr(void)
 {
+	int i;
+	
+	AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
+    SampleTable = InquireAdc();
+	
+	// ADC testing
+	for (i=0; i<3; i++)
+    {
+    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
+    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
+    }
+    
+    for (i=0; i<ADCArray; i++)
+    {
+    	GoodADC[ADCArray-i] = GoodADC[ADCArray-1-i];
+    	BadADC[ADCArray-i] = BadADC[ADCArray-1-i];
+    }
+    
+    GoodADC[0] = SampleTable[0]*3.0/4096;
+    BadADC[0] = SampleTable[2]*3.0/4096;
+	
+	free(SampleTable);
 	   
 //	GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
 //	Xint1Count++;
