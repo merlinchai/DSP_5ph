@@ -7,11 +7,6 @@
 //
 // TITLE:   Modulation scheme for 5 phase indirect matrix converter
 // 
-//       Watch Variables:
-//          GoodADC
-//          BadADC
-//          TestADC
-
 
 #include "DSP28x_Project.h"     	// Device Headerfile and Examples Include File
 #include "DSP2833x_Device.h"		// DSP2833x Headerfile Include File
@@ -63,9 +58,13 @@ float InputCurrentDQ[3];
 float *InputVoltageDQBuffer;
 float *InputCurrentDQBuffer;
 
-float GoodADC[ADCArray+1];
-float BadADC[ADCArray+1];
-float TestADC[16];
+float CurrentA[ADCArray+1];
+float CurrentB[ADCArray+1];
+float CurrentC[ADCArray+1];
+float ADCAll[16];
+float CurrentAAve;
+float CurrentBAve;
+float CurrentCAve;
 
 float OutputVoltageRef[5];
 float OutputVoltageDQ[5]; 
@@ -342,22 +341,40 @@ interrupt void xint1_isr(void)
     SampleTable = InquireAdc();
 	
 	// ADC testing
-	for (i=0; i<3; i++)
-    {
-    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
-    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
-    }
+//	for (i=0; i<3; i++)
+//    {
+//    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
+//    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
+//    }
     
     for (i=0; i<ADCArray; i++)
     {
-    	GoodADC[ADCArray-i] = GoodADC[ADCArray-1-i];
-    	BadADC[ADCArray-i] = BadADC[ADCArray-1-i];
+    	CurrentA[ADCArray-i] = CurrentA[ADCArray-1-i];
+    	CurrentB[ADCArray-i] = CurrentB[ADCArray-1-i];
+    	CurrentC[ADCArray-i] = CurrentC[ADCArray-1-i];
     }
     
-    GoodADC[0] = SampleTable[0]*3.0/4096;
-    BadADC[0] = SampleTable[2]*3.0/4096;
-	
-	free(SampleTable);
+    CurrentA[0] = SampleTable[0]*3.0/4096;
+    CurrentB[0] = SampleTable[1]*3.0/4096;
+    CurrentC[0] = SampleTable[2]*3.0/4096;
+    
+    
+    CurrentAAve = 0;
+    CurrentBAve = 0;
+    CurrentCAve = 0;
+    
+    for (i=0; i<ADCArray+1; i++)
+    {
+    	CurrentAAve += CurrentA[i];
+    	CurrentBAve += CurrentB[i];
+    	CurrentCAve += CurrentC[i];	
+    }
+    
+    CurrentAAve = CurrentAAve/(ADCArray+1);
+    CurrentBAve = CurrentBAve/(ADCArray+1);
+    CurrentCAve = CurrentCAve/(ADCArray+1);    
+    
+    free(SampleTable);
 	   
 //	GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
 //	Xint1Count++;
