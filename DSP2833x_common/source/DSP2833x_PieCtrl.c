@@ -75,11 +75,11 @@ void EnableInterrupts()
 	// Enable CPU INT1 which is connected to CPU-Timer 0
    	IER |= M_INT1;
 	// Enable INT3 which is connected to ePWM
-	IER |= M_INT3;  
+//	IER |= M_INT3;  
 	// Enable INT13 which is connected to CPU-Timer 1
 	IER |= M_INT13;
 	// Enable INT14 which is connected to CPU-Timer 2
-	IER |= M_INT14;
+//	IER |= M_INT14;
 	
 	// Enable TINT0 in the PIE: Group 1 interrupt 7
    	PieCtrlRegs.PIEIER1.bit.INTx7 = 1;

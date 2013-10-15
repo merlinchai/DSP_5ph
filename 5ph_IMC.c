@@ -61,10 +61,12 @@ float *InputCurrentDQBuffer;
 float CurrentA[ADCArray+1];
 float CurrentB[ADCArray+1];
 float CurrentC[ADCArray+1];
+float VoltageA[ADCArray+1];
+float VoltageB[ADCArray+1];
+float VoltageC[ADCArray+1];
 float ADCAll[16];
-float CurrentAAve;
-float CurrentBAve;
-float CurrentCAve;
+float CurrentAve[3];
+float VoltageAve[3];
 
 float OutputVoltageRef[5];
 float OutputVoltageDQ[5]; 
@@ -153,8 +155,8 @@ void main(void)
 
 	// Configure CPU-Timer 0, 1, and 2 to interrupt:
 	// 150MHz CPU Freq; 1000000 = 1 sec
-	ConfigCpuTimer(&CpuTimer0, 150, 200);			// Use timer0 as timer to generate output reference; ticks every 0.5ms
-	ConfigCpuTimer(&CpuTimer1, 150, 1000000);		// Blink LED at 1s
+	ConfigCpuTimer(&CpuTimer0, 150, 200);			
+	ConfigCpuTimer(&CpuTimer1, 150, 1000000);		// Blink LED at 1s - circuit heartbeat
 //	ConfigCpuTimer(&CpuTimer2, 150, 1000000);
 	   
 	// To ensure precise timing, use write-only instructions to write to the entire register. Therefore, if any
@@ -194,70 +196,6 @@ void main(void)
 // Interrupt for cpu_timer0
 interrupt void cpu_timer0_isr(void)
 {
-//	int i;
-//
-//	// Inquire ADC
-//    AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
-//    SampleTable = InquireAdc();
-//    
-//    for (i=0; i<16; i++)
-//    {
-//    	TestADC[i] = SampleTable[i];	
-//    }
-//    
-//    // Convert ADC values to volts and amps
-//    // *** Need to determine which registers are connected
-//    // *** Need to determine correct scale factor
-//    InputVoltage[0] = SampleTable[0]*3.0/4096;
-//    InputVoltage[1] = SampleTable[1]*3.0/4096;
-//    InputVoltage[2] = SampleTable[2]*3.0/4096;
-//    
-//    InputCurrent[0] = SampleTable[3]*3.0/4096;
-//    InputCurrent[1] = SampleTable[4]*3.0/4096;
-//
-//    InputCurrent[2] = SampleTable[5]*3.0/4096;
-//    
-//    //dq transformation for input measurements
-//    InputVoltageDQBuffer = ThreePhaseClarke(InputVoltage);
-//    InputCurrentDQBuffer = ThreePhaseClarke(InputCurrent);
-//    
-//    for (i=0; i<3; i++)
-//    {
-//    	InputVoltageDQ[i] = InputVoltageDQBuffer[i];
-//    	InputCurrentDQ[i] = InputCurrentDQBuffer[i];	
-//    }
-//    
-//    for (i=0; i<99; i++)
-//    {
-//    	GoodADC[99-i] = GoodADC[98-i];
-//    	BadADC[99-i] = BadADC[98-i];
-//    }
-//    
-//    GoodADC[0] = SampleTable[0]*3.0/4096;
-//    BadADC[0] = SampleTable[2]*3.0/4096;
-//    
-//    // Free memory allocation in dq transformation function
-//    free(InputVoltageDQBuffer);
-//    free(InputCurrentDQBuffer);    
-//	free(SampleTable);
-//    
-//    
-//	// Generate output reference voltages
-//	for (i=0; i<5; i++)
-//	{
-//		OutputVoltageRef[i] = M*sin(2*PI*OUTPUT_FREQ*CpuTimer0.InterruptCount*0.0005 - i*2*PI/5);
-//	}
-//	
-//	// dq transformation for output reference voltages
-//	OutputVoltageDQBuffer = FivePhaseClarke(OutputVoltageRef);
-//	
-//	for (i = 0; i<5; i++)
-//	{
-//		OutputVoltageDQ[i] = OutputVoltageDQBuffer[i];	
-//	}
-//	
-//	free(OutputVoltageDQBuffer);
-
 	CpuTimer0.InterruptCount++;
 
 	// Acknowledge this interrupt to receive more interrupts from group 1
@@ -339,6 +277,11 @@ interrupt void xint1_isr(void)
 	
 	AdcRegs.ADCTRL2.bit.SOC_SEQ1 = 1;
     SampleTable = InquireAdc();
+    
+    for (i=0; i<16; i++)
+    {
+    	ADCAll[i] = SampleTable[i];	
+    }
 	
 	// ADC testing
 //	for (i=0; i<3; i++)
@@ -349,31 +292,21 @@ interrupt void xint1_isr(void)
     
     for (i=0; i<ADCArray; i++)
     {
-    	CurrentA[ADCArray-i] = CurrentA[ADCArray-1-i];
-    	CurrentB[ADCArray-i] = CurrentB[ADCArray-1-i];
-    	CurrentC[ADCArray-i] = CurrentC[ADCArray-1-i];
+//    	CurrentA[ADCArray-i] = CurrentA[ADCArray-1-i];
+//    	CurrentB[ADCArray-i] = CurrentB[ADCArray-1-i];
+//    	CurrentC[ADCArray-i] = CurrentC[ADCArray-1-i];
+    	VoltageA[ADCArray-i] = VoltageA[ADCArray-1-i];
+    	VoltageB[ADCArray-i] = VoltageB[ADCArray-1-i];
+    	VoltageC[ADCArray-i] = VoltageC[ADCArray-1-i];
     }
     
-    CurrentA[0] = SampleTable[0]*3.0/4096;
-    CurrentB[0] = SampleTable[1]*3.0/4096;
-    CurrentC[0] = SampleTable[2]*3.0/4096;
-    
-    
-    CurrentAAve = 0;
-    CurrentBAve = 0;
-    CurrentCAve = 0;
-    
-    for (i=0; i<ADCArray+1; i++)
-    {
-    	CurrentAAve += CurrentA[i];
-    	CurrentBAve += CurrentB[i];
-    	CurrentCAve += CurrentC[i];	
-    }
-    
-    CurrentAAve = CurrentAAve/(ADCArray+1);
-    CurrentBAve = CurrentBAve/(ADCArray+1);
-    CurrentCAve = CurrentCAve/(ADCArray+1);    
-    
+//    CurrentA[0] = SampleTable[0]*3.0/4096;
+//    CurrentB[0] = SampleTable[1]*3.0/4096;
+//    CurrentC[0] = SampleTable[2]*3.0/4096;
+    VoltageA[0] = SampleTable[3]*3.0/4096;
+    VoltageB[0] = SampleTable[4]*3.0/4096;
+    VoltageC[0] = SampleTable[5]*3.0/4096;
+            
     free(SampleTable);
 	   
 //	GpioDataRegs.GPBCLEAR.all = 0x4;   // GPIO34 is low
